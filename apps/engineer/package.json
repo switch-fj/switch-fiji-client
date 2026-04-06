@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbo",
+    "dev-https": "next dev --turbo --experimental-https",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
@@ -17,6 +18,7 @@
     "check": "pnpm lint && pnpm check:format && pnpm check:types"
   },
   "dependencies": {
+    "@switch-fiji/api": "workspace:*",
     "@switch-fiji/auth": "workspace:*",
     "@switch-fiji/ui": "workspace:*",
     "@hookform/resolvers": "^5.2.2",
@@ -60,6 +62,7 @@
     "@vitejs/plugin-react": "^5.1.0",
     "@vitest/coverage-v8": "4.0.8",
     "babel-plugin-react-compiler": "1.0.0",
+    "dotenv": "^16.6.1",
     "eslint": "^9.39.1",
     "eslint-config-next": "^16.0.1",
     "jsdom": "^27.1.0",

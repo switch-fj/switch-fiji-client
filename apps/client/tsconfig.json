@@ -23,7 +23,9 @@
       "@switch-fiji/ui": ["../../packages/ui/src/index.ts"],
       "@switch-fiji/ui/*": ["../../packages/ui/src/*"],
       "@switch-fiji/auth": ["../../packages/auth/src/index.ts"],
-      "@switch-fiji/auth/*": ["../../packages/auth/src/*"]
+      "@switch-fiji/auth/*": ["../../packages/auth/src/*"],
+      "@switch-fiji/api": ["../../packages/api/src/index.ts"],
+      "@switch-fiji/api/*": ["../../packages/api/src/*"]
     }
   },
   "include": [
