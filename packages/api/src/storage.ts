@@ -4,23 +4,80 @@ export type AuthStorage = {
   clearToken: () => void;
 };
 
+const COOKIE_NAME = "access_token";
+const SECRET = process.env.NEXT_PUBLIC_SESSION_SECRET ?? "";
+
+const xorCipher = (input: string, key: string) => {
+  if (!key) {
+    return input;
+  }
+  let output = "";
+  for (let i = 0; i < input.length; i += 1) {
+    output += String.fromCharCode(
+      input.charCodeAt(i) ^ key.charCodeAt(i % key.length),
+    );
+  }
+  return output;
+};
+
+const encodeToken = (token: string) => {
+  if (!SECRET) {
+    return token;
+  }
+  try {
+    return btoa(xorCipher(token, SECRET));
+  } catch {
+    return token;
+  }
+};
+
+const decodeToken = (token: string) => {
+  if (!SECRET) {
+    return token;
+  }
+  try {
+    return xorCipher(atob(token), SECRET);
+  } catch {
+    return token;
+  }
+};
+
+const setCookie = (value: string) => {
+  if (typeof document === "undefined") {
+    return;
+  }
+  const secure = window.location.protocol === "https:" ? "; secure" : "";
+  document.cookie = `${COOKIE_NAME}=${value}; path=/; samesite=lax${secure}`;
+};
+
+const clearCookie = () => {
+  if (typeof document === "undefined") {
+    return;
+  }
+  document.cookie = `${COOKIE_NAME}=; path=/; max-age=0; samesite=lax`;
+};
+
 export const defaultAuthStorage: AuthStorage = {
   getToken: () => {
     if (typeof window === "undefined") {
       return null;
     }
-    return window.localStorage.getItem("access_token");
+    const stored = window.localStorage.getItem("access_token");
+    return stored ? decodeToken(stored) : null;
   },
   setToken: (token: string) => {
     if (typeof window === "undefined") {
       return;
     }
-    window.localStorage.setItem("access_token", token);
+    const encoded = encodeToken(token);
+    window.localStorage.setItem("access_token", encoded);
+    setCookie(encoded);
   },
   clearToken: () => {
     if (typeof window === "undefined") {
       return;
     }
     window.localStorage.removeItem("access_token");
+    clearCookie();
   },
 };
