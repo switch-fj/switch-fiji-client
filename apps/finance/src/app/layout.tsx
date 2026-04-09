@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Source_Sans_3 } from "next/font/google";
 import { Toaster } from "sonner";
 import { StoreProvider } from "@/store";
+import QueryProvider from "@/providers/QueryProvider";
 import "./globals.css";
 
 const sourceSans = Source_Sans_3({
@@ -22,7 +23,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${sourceSans.variable} antialiased`}>
-        <StoreProvider>{children}</StoreProvider>
+        <StoreProvider>
+          <QueryProvider>{children}</QueryProvider>
+        </StoreProvider>
         <Toaster richColors position="top-right" />
       </body>
     </html>
