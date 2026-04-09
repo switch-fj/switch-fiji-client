@@ -25,7 +25,8 @@ export const UserResponseSchema = z.object({
   created_at: z.string(),
   updated_at: z.string(),
   email: z.string(),
-  role: z.number(),
+  role: z.number().nullable(),
+  identity: z.number(),
   is_email_verified: z.boolean(),
 });
 
