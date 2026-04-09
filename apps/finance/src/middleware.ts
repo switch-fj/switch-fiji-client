@@ -40,14 +40,17 @@ const isTokenValid = async (token: string) => {
     ? "/auth/profile"
     : "/api/v1/auth/profile";
 
-  const response = await fetch(`${normalizedBaseUrl}${profilePath}`, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${decodeToken(token)}`,
-    },
-  });
-
-  return response.ok;
+  try {
+    const response = await fetch(`${normalizedBaseUrl}${profilePath}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${decodeToken(token)}`,
+      },
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
 };
 
 export async function middleware(request: NextRequest) {

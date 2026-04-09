@@ -12,8 +12,13 @@ const FinanceLoginPage = observer(() => {
   const router = useRouter();
   const isSubmitting = AuthStore.isLoading.login || AuthStore.isLoading.verify;
 
-  const handleAuthSuccess = (response: { message: string }) => {
+  const handleAuthSuccess = async (response: { message: string }) => {
     toast.success(response.message || "Login successful.");
+    try {
+      await AuthStore.fetchProfile();
+    } catch (err) {
+      toast.error("Unable to load profile. Please try again.");
+    }
     router.replace("/dashboard");
   };
 
