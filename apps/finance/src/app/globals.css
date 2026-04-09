@@ -1,5 +1,5 @@
-@import 'tailwindcss';
-@import 'tw-animate-css';
+@import "tailwindcss";
+@import "tw-animate-css";
 
 @source "../../../../packages/ui/src/**/*.{ts,tsx}";
 @source "../../../../packages/auth/src/**/*.{ts,tsx}";
@@ -8,7 +8,7 @@
 
 @layer components {
   .button {
-    @apply flex cursor-pointer items-center justify-center px-3 py-1 ;
+    @apply flex cursor-pointer items-center justify-center px-3 py-1;
     @apply whitespace-nowrap transition-all duration-150 ease-in-out disabled:cursor-not-allowed disabled:opacity-50 hover:disabled:opacity-50;
   }
 
@@ -28,8 +28,8 @@
   }
 
   .button-outlined {
-    @apply border  bg-white text-black hover:border-blue-400 hover:shadow;
-    @apply w-full rounded-lg border font-medium;
+    @apply bg-white text-text-1 hover:border-primary/30 hover:shadow;
+    @apply w-full rounded-lg border border-primary font-medium;
   }
 
   .button-light {
@@ -70,7 +70,7 @@
   }
 
   .status-badge {
-    @apply flex w-fit items-center justify-center whitespace-nowrap rounded-lg bg-neutral-50 px-2 py-1 text-center text-xs text-neutral-600 ;
+    @apply flex w-fit items-center justify-center whitespace-nowrap rounded-lg bg-neutral-50 px-2 py-1 text-center text-xs text-neutral-600;
   }
 
   .status-red {
@@ -82,7 +82,7 @@
   }
 
   .status-teal {
-    @apply border-teal-300/30 bg-teal-300/10 !font-normal !text-teal-300 ;
+    @apply border-teal-300/30 bg-teal-300/10 !font-normal !text-teal-300;
   }
 
   .status-green {
@@ -103,7 +103,7 @@
 
   .notify_btn {
     @apply flex items-center justify-start space-x-1 rounded px-2 py-1 text-xs;
-    @apply transition-all duration-300 ;
+    @apply transition-all duration-300;
   }
 
   .notify-btn-filled {
