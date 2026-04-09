@@ -1,8 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { FilterSelect, SearchInput, type FilterOption } from "@switch-fiji/ui";
-import { Search } from "lucide-react";
+import {
+  Button,
+  FilterSelect,
+  SearchInput,
+  type FilterOption,
+} from "@switch-fiji/ui";
+import { Search, Plus } from "lucide-react";
 
 type DashboardHeadersProps = {
   totalLabel?: string;
@@ -13,6 +18,7 @@ type DashboardHeadersProps = {
   filterValue?: string;
   onFilterChange?: (value: string) => void;
   filterOptions?: FilterOption[];
+  onAddClient?: () => void;
 };
 
 const defaultFilterOptions: FilterOption[] = [
@@ -30,6 +36,7 @@ export default function DashboardHeaders({
   filterValue,
   onFilterChange,
   filterOptions,
+  onAddClient,
 }: DashboardHeadersProps) {
   const [localSearch, setLocalSearch] = useState("");
   const [localFilter, setLocalFilter] = useState("all");
@@ -43,7 +50,7 @@ export default function DashboardHeaders({
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 bg-white px-4 py-3 ">
-      <div className="flex items-center  bg-primary rounded-md px-4 py-3">
+      <div className="flex items-center bg-primary rounded-md px-4 py-3">
         <div className="flex flex-row items-center gap-4">
           <span className="text-3xl tracking-wide text-white font-normal">
             {totalLabel}
@@ -53,7 +60,6 @@ export default function DashboardHeaders({
           </span>
         </div>
       </div>
-
       <div className="flex w-full flex-wrap items-center justify-end gap-3 sm:w-auto">
         <div className="w-full sm:w-64">
           <SearchInput
