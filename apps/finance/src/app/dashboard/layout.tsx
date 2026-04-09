@@ -4,18 +4,11 @@ import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { DashboardLayout } from "@switch-fiji/ui";
 import { useLogout } from "@/hooks/useAuth";
+import { DASHBOARD_LINKS } from "@/constants/routes";
 
 type DashboardLayoutProps = {
   children: React.ReactNode;
 };
-
-const links = [
-  { label: "Overview", href: "/dashboard" },
-  { label: "Invoices", href: "/dashboard/invoices" },
-  { label: "Payments", href: "/dashboard/payments" },
-  { label: "Payouts", href: "/dashboard/payouts" },
-  { label: "Reports", href: "/dashboard/reports" },
-];
 
 export default function FinanceDashboardLayout({
   children,
@@ -30,7 +23,11 @@ export default function FinanceDashboardLayout({
   }, [logout, router]);
 
   return (
-    <DashboardLayout title="Finance" links={links} onLogout={handleLogout}>
+    <DashboardLayout
+      title="Finance"
+      links={DASHBOARD_LINKS}
+      onLogout={handleLogout}
+    >
       {children}
     </DashboardLayout>
   );
