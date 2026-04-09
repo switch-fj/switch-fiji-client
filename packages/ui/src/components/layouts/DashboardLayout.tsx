@@ -226,35 +226,36 @@ export default function DashboardLayout({
 
       <Dialog open={isLogoutOpen} onOpenChange={setIsLogoutOpen}>
         <DialogContent
-          className="max-w-md overflow-hidden rounded-2xl p-0"
-          showCloseButton
+          className="max-w-sm overflow-hidden rounded-2xl p-0"
+          showCloseButton={false}
         >
-          <div className="flex items-start gap-4 border-b px-6 py-5">
-            <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-destructive/10 text-destructive">
-              <LogOut className="h-5 w-5" aria-hidden="true" />
+          <div className="flex flex-col items-center gap-4 px-6 pt-8 pb-2 text-center">
+            <span className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+              <LogOut className="h-6 w-6 text-primary" aria-hidden="true" />
             </span>
-            <div>
-              <DialogTitle className="text-lg">Log out</DialogTitle>
-              <DialogDescription className="mt-1">
-                You are about to end this session. You can log back in anytime.
+            <div className="space-y-1.5">
+              <DialogTitle className="text-xl font-semibold">
+                Log out?
+              </DialogTitle>
+              <DialogDescription className="text-sm text-muted-foreground">
+                You are about to end your session. You can always log back in
+                anytime.
               </DialogDescription>
             </div>
           </div>
-          <div className="px-6 py-4">
-            <p className="text-sm text-muted-foreground">
-              Make sure you have saved any in-progress work before logging out.
-            </p>
-          </div>
-          <DialogFooter className="border-t px-6 py-4 sm:justify-end">
+          <div className="flex gap-3 px-6 py-6">
             <Button
               variant="outline"
+              className="flex-1"
               onClick={() => setIsLogoutOpen(false)}
               disabled={isLoggingOut}
             >
               Cancel
             </Button>
             <Button
-              variant="destructive"
+              variant="default"
+              className="flex-1"
+              isLoading={isLoggingOut}
               disabled={isLoggingOut}
               onClick={async () => {
                 setIsLoggingOut(true);
@@ -266,16 +267,9 @@ export default function DashboardLayout({
                 }
               }}
             >
-              {isLoggingOut ? (
-                <span className="inline-flex items-center gap-2">
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  Logging out...
-                </span>
-              ) : (
-                "Log out"
-              )}
+              {!isLoggingOut && "Log out"}
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
