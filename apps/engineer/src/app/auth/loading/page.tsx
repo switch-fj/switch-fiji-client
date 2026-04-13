@@ -1,1 +1,1 @@
-export { default } from "@switch-fiji/auth/views/LoadingView";
+export { default } from "@workspace/auth/views/LoadingView";

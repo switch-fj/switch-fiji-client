@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, CardHeader, CardTitle } from "@switch-fiji/ui";
+import { Card, CardHeader, CardTitle } from "@workspace/ui";
 
 export default function LoadingView() {
   return (

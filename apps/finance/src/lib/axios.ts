@@ -1,5 +1,5 @@
 import axios from "axios";
-import { defaultAuthStorage, getApiBaseUrl } from "@switch-fiji/api";
+import { defaultAuthStorage, getApiBaseUrl } from "@workspace/api";
 
 // Strip /api/v1 suffix so full paths like /api/v1/admin/clients work correctly
 const baseURL = getApiBaseUrl().replace(/\/api\/v1\/?$/, "");

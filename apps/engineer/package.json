@@ -3,24 +3,17 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbo",
-    "dev-https": "next dev --turbo --experimental-https",
+    "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint .",
-    "lint:fix": "eslint --fix .",
-    "test": "vitest",
-    "format": "prettier --write .",
-    "test:ci": "vitest run",
-    "coverage": "vitest run --coverage",
-    "check:types": "tsc --pretty --noEmit",
-    "check:format": "prettier --check \"src/**/*.+(ts|tsx|json)\"",
-    "check": "pnpm lint && pnpm check:format && pnpm check:types"
+    "lint": "eslint",
+    "format": "prettier --write \"**/*.{ts,tsx}\"",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@switch-fiji/api": "workspace:*",
-    "@switch-fiji/auth": "workspace:*",
-    "@switch-fiji/ui": "workspace:*",
+    "@workspace/api": "workspace:*",
+    "@workspace/auth": "workspace:*",
+    "@workspace/ui": "workspace:*",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
@@ -49,7 +42,7 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
-    "@switch-fiji/eslint-config": "workspace:*",
+    "@workspace/eslint-config": "workspace:*",
     "@eslint/eslintrc": "^3.3.1",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",

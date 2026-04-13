@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { observer } from "mobx-react-lite";
-import { Card, CardContent, CardHeader, CardTitle } from "@switch-fiji/ui";
+import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui";
 import { useStore } from "@/store";
 import { EnumIdentityType, EnumStaffRole } from "@/constants/mangle";
 

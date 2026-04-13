@@ -12,7 +12,7 @@ import {
   Form,
   FormField,
   InputField,
-} from "@switch-fiji/ui";
+} from "@workspace/ui";
 import {
   loginBaseSchema,
   loginEmailSchema,

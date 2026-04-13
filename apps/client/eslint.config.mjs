@@ -1,3 +1,3 @@
-import eslintConfig from '@switch-fiji/eslint-config';
+import eslintConfig from '@workspace/eslint-config';
 
 export default eslintConfig;

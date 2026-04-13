@@ -7,7 +7,7 @@ dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 const nextConfig: NextConfig = {
   /* config options here */
   reactCompiler: true,
-  transpilePackages: ["@switch-fiji/ui", "@switch-fiji/auth"],
+  transpilePackages: ["@workspace/ui", "@workspace/auth"],
   images: {
     qualities: [100],
     remotePatterns: [

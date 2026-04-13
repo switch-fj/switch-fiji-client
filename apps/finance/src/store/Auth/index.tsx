@@ -10,7 +10,7 @@ import {
   type TokenModel,
   type UserResponseModel,
   type VerifyLoginInput,
-} from "@switch-fiji/api";
+} from "@workspace/api";
 import { action, makeObservable, observable, runInAction } from "mobx";
 import { AUTH } from "@/constants/api";
 import initializer from "@/utils/initializer";

@@ -44,3 +44,8 @@ next-env.d.ts
 # local notes
 monorepo-guide.md
 api.json
+
+# Turborepo
+.turbo/
+apps/*/.turbo/
+packages/*/.turbo/

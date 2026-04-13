@@ -28,8 +28,8 @@ pnpm dev:finance
 
 ## Shared packages
 
-- `@switch-fiji/ui` for reusable UI components.
-- `@switch-fiji/auth` for auth flows.
+- `@workspace/ui` for reusable UI components.
+- `@workspace/auth` for auth flows.
 
 ## Conventions
 

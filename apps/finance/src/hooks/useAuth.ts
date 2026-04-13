@@ -11,7 +11,7 @@ import {
   type VerifyLoginInput,
   type TokenModel,
   type UserResponseModel,
-} from "@switch-fiji/api";
+} from "@workspace/api";
 
 const authClient = createAuthClient({
   baseUrl: getApiBaseUrl(),

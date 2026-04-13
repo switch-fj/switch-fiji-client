@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@switch-fiji/ui";
+import { Button } from "@workspace/ui";
 import { Plus, Cpu, Radio } from "lucide-react";
 import { useSites } from "@/hooks/useSite";
 import type { ClientModel } from "@/types/client";

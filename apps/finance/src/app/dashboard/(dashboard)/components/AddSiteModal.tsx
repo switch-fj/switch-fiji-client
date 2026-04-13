@@ -2,14 +2,14 @@
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button } from "@switch-fiji/ui";
+import { Button } from "@workspace/ui";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@switch-fiji/ui";
+} from "@workspace/ui";
 import { CreateSiteSchema, type CreateSiteInput } from "@/types/site";
 import { useAddSite } from "@/hooks/useSite";
 

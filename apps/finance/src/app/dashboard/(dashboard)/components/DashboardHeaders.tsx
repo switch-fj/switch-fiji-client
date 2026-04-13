@@ -6,7 +6,7 @@ import {
   FilterSelect,
   SearchInput,
   type FilterOption,
-} from "@switch-fiji/ui";
+} from "@workspace/ui";
 import { Search, Plus } from "lucide-react";
 
 type DashboardHeadersProps = {

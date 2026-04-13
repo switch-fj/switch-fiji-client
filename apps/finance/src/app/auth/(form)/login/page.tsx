@@ -1,7 +1,7 @@
 "use client";
 
-import LoadingView from "@switch-fiji/auth/views/LoadingView";
-import LoginView from "@switch-fiji/auth/views/LoginView";
+import LoadingView from "@workspace/auth/views/LoadingView";
+import LoginView from "@workspace/auth/views/LoginView";
 import { observer } from "mobx-react-lite";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";

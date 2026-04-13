@@ -3,7 +3,7 @@ import {
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@switch-fiji/ui";
+} from "@workspace/ui";
 import type { ClientModel } from "@/types/client";
 
 type ClientAccordionProps = {

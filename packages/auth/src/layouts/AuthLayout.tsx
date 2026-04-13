@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Button } from '@switch-fiji/ui';
+import { Button } from '@workspace/ui';
 import { CircleQuestionMark } from 'lucide-react';
 
 export default function AuthLayout({

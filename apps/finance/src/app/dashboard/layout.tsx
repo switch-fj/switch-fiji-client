@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { DashboardLayout } from "@switch-fiji/ui";
+import { DashboardLayout } from "@workspace/ui";
 import { useLogout } from "@/hooks/useAuth";
 import { DASHBOARD_LINKS } from "@/constants/routes";
 import QueryProvider from "@/providers/QueryProvider";

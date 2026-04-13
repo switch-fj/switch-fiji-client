@@ -1,6 +1,6 @@
 "use client";
 
-import LoginView from "@switch-fiji/auth/views/LoginView";
+import LoginView from "@workspace/auth/views/LoginView";
 import { useLogin, useVerifyLogin } from "@/hooks/useAuth";
 
 export default function EngineerLoginPage() {
