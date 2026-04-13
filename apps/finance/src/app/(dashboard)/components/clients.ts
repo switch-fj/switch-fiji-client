@@ -1,40 +1,40 @@
 export type ClientMetricSet = {
-  expected: string;
-  actual: string;
-  billing: string;
-  deviation: string;
-};
+  expected: string
+  actual: string
+  billing: string
+  deviation: string
+}
 
 import {
   EnumContractBillingFrequency,
   EnumContractDetailsStatus,
   EnumContractSystemMode,
   EnumContractType,
-} from "@/constants/mangle";
+} from "@/constants/mangle"
 
 export type ClientSite = {
-  name: string;
-  tagTone: string;
-  expected: string;
-  actual: string;
-  billing: string;
-  cumulative: string;
-  alert: string;
-  alertTone: string;
-  contractType: EnumContractType;
-  contractMode: EnumContractSystemMode;
-  contractStatus: EnumContractDetailsStatus;
-  billingFrequency: EnumContractBillingFrequency;
-};
+  name: string
+  tagTone: string
+  expected: string
+  actual: string
+  billing: string
+  cumulative: string
+  alert: string
+  alertTone: string
+  contractType: EnumContractType
+  contractMode: EnumContractSystemMode
+  contractStatus: EnumContractDetailsStatus
+  billingFrequency: EnumContractBillingFrequency
+}
 
 export type ClientSummary = {
-  id: string;
-  name: string;
-  status: string;
-  statusTone: string;
-  metrics: ClientMetricSet;
-  sites: ClientSite[];
-};
+  id: string
+  name: string
+  status: string
+  statusTone: string
+  metrics: ClientMetricSet
+  sites: ClientSite[]
+}
 
 export const clients: ClientSummary[] = [
   {
@@ -118,4 +118,4 @@ export const clients: ClientSummary[] = [
     },
     sites: [],
   },
-];
+]

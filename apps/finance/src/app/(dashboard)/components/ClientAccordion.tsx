@@ -3,14 +3,14 @@ import {
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@workspace/ui";
-import type { ClientModel } from "@/types/client";
+} from "@workspace/ui"
+import type { ClientModel } from "@/types/client"
 
 type ClientAccordionProps = {
-  clients: ClientModel[];
-  activeClientId: string;
-  onActiveChange: (value: string) => void;
-};
+  clients: ClientModel[]
+  activeClientId: string
+  onActiveChange: (value: string) => void
+}
 
 export default function ClientAccordion({
   clients,
@@ -37,9 +37,9 @@ export default function ClientAccordion({
                 <span className="text-sm font-semibold">
                   {client.client_name}
                 </span>
-                <span className="flex items-center space-x-1 rounded-xs bg-primary/10 px-2 py-0.5 font-semibold">
-                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary" />
-                  <span className="text-[10px] text-primary">
+                <span className="bg-primary/10 flex items-center space-x-1 rounded-xs px-2 py-0.5 font-semibold">
+                  <span className="bg-primary inline-block h-1.5 w-1.5 rounded-full" />
+                  <span className="text-primary text-[10px]">
                     {client.sites_count ?? 0} site
                     {client.sites_count !== 1 ? "s" : ""}
                   </span>
@@ -49,19 +49,19 @@ export default function ClientAccordion({
           </AccordionTrigger>
           <AccordionContent className="border-t px-4 py-3">
             <div className="space-y-3 text-sm">
-              <div className="grid grid-cols-[auto_auto] justify-start gap-x-6 gap-y-2 text-xs text-muted-foreground">
+              <div className="text-muted-foreground grid grid-cols-[auto_auto] justify-start gap-x-6 gap-y-2 text-xs">
                 <span>Email</span>
-                <span className="font-semibold text-foreground">
+                <span className="text-foreground font-semibold">
                   {client.client_email}
                 </span>
 
                 <span>Client ID</span>
-                <span className="font-semibold text-foreground">
+                <span className="text-foreground font-semibold">
                   {client.client_id ?? "—"}
                 </span>
 
                 <span>Sites</span>
-                <span className="font-semibold text-foreground">
+                <span className="text-foreground font-semibold">
                   {client.sites_count ?? 0}
                 </span>
               </div>
@@ -70,5 +70,5 @@ export default function ClientAccordion({
         </AccordionItem>
       ))}
     </Accordion>
-  );
+  )
 }

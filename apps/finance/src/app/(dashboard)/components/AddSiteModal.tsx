@@ -1,30 +1,30 @@
-"use client";
+"use client"
 
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Button } from "@workspace/ui";
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { Button } from "@workspace/ui"
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@workspace/ui";
-import { CreateSiteSchema, type CreateSiteInput } from "@/types/site";
-import { useAddSite } from "@/hooks/useSite";
+} from "@workspace/ui"
+import { CreateSiteSchema, type CreateSiteInput } from "@/types/site"
+import { useAddSite } from "@/hooks/useSite"
 
 type AddSiteModalProps = {
-  open: boolean;
-  clientUid: string;
-  onClose: () => void;
-};
+  open: boolean
+  clientUid: string
+  onClose: () => void
+}
 
 export default function AddSiteModal({
   open,
   clientUid,
   onClose,
 }: AddSiteModalProps) {
-  const { mutate: addSite, isPending } = useAddSite();
+  const { mutate: addSite, isPending } = useAddSite()
 
   const {
     register,
@@ -34,23 +34,23 @@ export default function AddSiteModal({
   } = useForm<CreateSiteInput>({
     resolver: zodResolver(CreateSiteSchema),
     defaultValues: { client_uid: clientUid },
-  });
+  })
 
   const handleClose = () => {
-    reset();
-    onClose();
-  };
+    reset()
+    onClose()
+  }
 
   const onSubmit = (values: CreateSiteInput) => {
-    addSite(values, { onSuccess: () => handleClose() });
-  };
+    addSite(values, { onSuccess: () => handleClose() })
+  }
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
       <DialogContent className="max-w-md rounded-2xl" showCloseButton>
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">Add Site</DialogTitle>
-          <DialogDescription className="text-sm text-muted-foreground">
+          <DialogDescription className="text-muted-foreground text-sm">
             Add a new site to this client.
           </DialogDescription>
         </DialogHeader>
@@ -61,12 +61,12 @@ export default function AddSiteModal({
           <div className="space-y-1">
             <label className="text-sm font-medium">Site Name</label>
             <input
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+              className="border-input bg-background focus:border-primary w-full rounded-md border px-3 py-2 text-sm outline-none"
               placeholder="e.g. Nadi Resort Solar Plant"
               {...register("site_name")}
             />
             {errors.site_name && (
-              <p className="text-xs text-destructive">
+              <p className="text-destructive text-xs">
                 {errors.site_name.message}
               </p>
             )}
@@ -97,5 +97,5 @@ export default function AddSiteModal({
         </form>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

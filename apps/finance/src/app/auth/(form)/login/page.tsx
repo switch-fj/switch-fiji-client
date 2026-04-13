@@ -1,34 +1,34 @@
-"use client";
+"use client"
 
-import { LoadingView, LoginView } from "@workspace/auth";
-import { observer } from "mobx-react-lite";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import { useStore } from "@/store";
+import { LoadingView, LoginView } from "@workspace/auth"
+import { observer } from "mobx-react-lite"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
+import { useStore } from "@/store"
 
 const FinanceLoginPage = observer(() => {
-  const { AuthStore } = useStore();
-  const router = useRouter();
-  const isSubmitting = AuthStore.isLoading.login || AuthStore.isLoading.verify;
+  const { AuthStore } = useStore()
+  const router = useRouter()
+  const isSubmitting = AuthStore.isLoading.login || AuthStore.isLoading.verify
 
   const handleAuthSuccess = async (response: { message: string }) => {
-    toast.success(response.message || "Login successful.");
+    toast.success(response.message || "Login successful.")
     try {
-      await AuthStore.fetchProfile();
+      await AuthStore.fetchProfile()
     } catch (err) {
-      toast.error("Unable to load profile. Please try again.");
+      toast.error("Unable to load profile. Please try again.")
     }
-    router.replace("/dashboard");
-  };
+    router.replace("/")
+  }
 
   const handleAuthError = (message: string) => {
-    toast.error(message || "Login failed.");
-  };
+    toast.error(message || "Login failed.")
+  }
 
   return (
     <div className="relative flex w-full justify-center">
       <div
-        className={isSubmitting ? "invisible" : "w-full flex justify-center"}
+        className={isSubmitting ? "invisible" : "flex w-full justify-center"}
       >
         <LoginView
           login={AuthStore.login}
@@ -44,7 +44,7 @@ const FinanceLoginPage = observer(() => {
         </div>
       ) : null}
     </div>
-  );
-});
+  )
+})
 
-export default FinanceLoginPage;
+export default FinanceLoginPage
