@@ -1,4 +1,6 @@
 import { forwardRef, ReactNode } from 'react';
+
+type TOption = { value: string; label: string; disable?: boolean };
 import {
   FormControl,
   FormDescription,
