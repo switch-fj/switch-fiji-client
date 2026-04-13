@@ -1,0 +1,14 @@
+# next.js
+/.next/
+/out/
+
+# env
+.env*
+
+# testing
+/coverage
+
+# misc
+.DS_Store
+
+certificates

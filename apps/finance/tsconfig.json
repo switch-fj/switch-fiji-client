@@ -1,0 +1,40 @@
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./src/*"],
+      "@switch-fiji/ui": ["../../packages/ui/src/index.ts"],
+      "@switch-fiji/ui/*": ["../../packages/ui/src/*"],
+      "@switch-fiji/auth": ["../../packages/auth/src/index.ts"],
+      "@switch-fiji/auth/*": ["../../packages/auth/src/*"],
+      "@switch-fiji/api": ["../../packages/api/src/index.ts"],
+      "@switch-fiji/api/*": ["../../packages/api/src/*"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    "**/*.mts"
+  ],
+  "exclude": ["node_modules"]
+}

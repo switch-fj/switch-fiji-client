@@ -1,0 +1,14 @@
+{
+  "name": "@switch-fiji/eslint-config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "eslint.config.mjs",
+  "files": [
+    "eslint.config.mjs"
+  ],
+  "peerDependencies": {
+    "eslint": "^9.0.0",
+    "eslint-config-next": "^16.0.1"
+  }
+}
