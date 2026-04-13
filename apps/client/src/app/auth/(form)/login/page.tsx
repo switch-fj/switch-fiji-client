@@ -1,6 +1,6 @@
 "use client";
 
-import LoginView from "@workspace/auth/views/LoginView";
+import { LoginView } from "@workspace/auth";
 import { useLogin, useVerifyLogin } from "@/hooks/useAuth";
 
 export default function ClientLoginPage() {

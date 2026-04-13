@@ -1,7 +1,6 @@
 "use client";
 
-import LoadingView from "@workspace/auth/views/LoadingView";
-import LoginView from "@workspace/auth/views/LoginView";
+import { LoadingView, LoginView } from "@workspace/auth";
 import { observer } from "mobx-react-lite";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";

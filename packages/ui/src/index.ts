@@ -10,7 +10,7 @@ export type {
 } from "./components/fields/FilterSelect";
 export type { SearchInputProps } from "./components/fields/SearchInput";
 
-export * from "./components/ui/button";
+export { buttonVariants } from "./components/ui/button";
 export * from "./components/ui/card";
 export * from "./components/ui/dialog";
 export * from "./components/ui/dropdown-menu";

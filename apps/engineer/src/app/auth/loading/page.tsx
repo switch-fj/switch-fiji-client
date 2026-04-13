@@ -1,1 +1,1 @@
-export { default } from "@workspace/auth/views/LoadingView";
+export { LoadingView as default } from "@workspace/auth";
