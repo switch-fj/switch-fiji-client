@@ -3,13 +3,11 @@ import {
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-  Button,
 } from "@switch-fiji/ui";
-import type { ClientSummary } from "./clients";
-import { ArrowRight, ChevronRight } from "lucide-react";
+import type { ClientModel } from "@/types/client";
 
 type ClientAccordionProps = {
-  clients: ClientSummary[];
+  clients: ClientModel[];
   activeClientId: string;
   onActiveChange: (value: string) => void;
 };
@@ -29,20 +27,22 @@ export default function ClientAccordion({
     >
       {clients.map((client) => (
         <AccordionItem
-          key={client.id}
-          value={client.id}
+          key={client.uid}
+          value={client.uid}
           className="rounded-lg border bg-neutral-50/70"
         >
           <AccordionTrigger className="px-4 py-3 hover:no-underline">
             <div className="flex w-full items-center justify-between gap-2 text-left">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold">{client.name}</span>
-                <span
-                  className={`flex items-center rounded-xs px-2 py-0.5 font-semibold ${client.statusTone} space-x-1`}
-                >
-                  {" "}
-                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-current" />
-                  <span className="text-[10px]">{client.status}</span>
+                <span className="text-sm font-semibold">
+                  {client.client_name}
+                </span>
+                <span className="flex items-center space-x-1 rounded-xs bg-primary/10 px-2 py-0.5 font-semibold">
+                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary" />
+                  <span className="text-[10px] text-primary">
+                    {client.sites_count ?? 0} site
+                    {client.sites_count !== 1 ? "s" : ""}
+                  </span>
                 </span>
               </div>
             </div>
@@ -50,33 +50,21 @@ export default function ClientAccordion({
           <AccordionContent className="border-t px-4 py-3">
             <div className="space-y-3 text-sm">
               <div className="grid grid-cols-[auto_auto] justify-start gap-x-6 gap-y-2 text-xs text-muted-foreground">
-                <span>Expected Generation (YTD)</span>
+                <span>Email</span>
                 <span className="font-semibold text-foreground">
-                  {client.metrics.expected}
+                  {client.client_email}
                 </span>
 
-                <span>Actual Generation (YTD)</span>
+                <span>Client ID</span>
                 <span className="font-semibold text-foreground">
-                  {client.metrics.actual}
+                  {client.client_id ?? "—"}
                 </span>
 
-                <span>Billing Progress</span>
+                <span>Sites</span>
                 <span className="font-semibold text-foreground">
-                  {client.metrics.billing}
-                </span>
-
-                <span>Deviation</span>
-                <span className="font-semibold text-red-500">
-                  {client.metrics.deviation}
+                  {client.sites_count ?? 0}
                 </span>
               </div>
-              <Button
-                variant="outlined"
-                size="lg"
-                className="w-[320px] text-sm rounded-sm"
-              >
-                View all Sites <ChevronRight />
-              </Button>
             </div>
           </AccordionContent>
         </AccordionItem>

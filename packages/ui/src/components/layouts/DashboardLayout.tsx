@@ -277,11 +277,11 @@ export default function DashboardLayout({
         <div className="max-w-7xl mx-auto w-full">{children}</div>
       </main>
 
-      <footer className="border-t py-3">
+      {/* <footer className="border-t py-3">
         <div className="mx-auto w-full max-w-7xl px-4 text-xs text-muted-foreground">
           {footerText}
         </div>
-      </footer>
+      </footer> */}
     </div>
   );
 }

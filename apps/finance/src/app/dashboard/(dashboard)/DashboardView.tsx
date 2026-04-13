@@ -6,47 +6,66 @@ import DashboardHeaders from "./components/DashboardHeaders";
 import ClientAccordion from "./components/ClientAccordion";
 import ClientSitesPanel from "./components/ClientSitesPanel";
 import AddClientModal from "./components/AddClientModal";
-import { clients } from "./components/clients";
+import { useClients } from "@/hooks/useClient";
 
 export default function DashboardView() {
-  const [activeClientId, setActiveClientId] = useState(clients[0]?.id ?? "");
   const [addClientOpen, setAddClientOpen] = useState(false);
+  const [activeClientId, setActiveClientId] = useState("");
+
+  const { data, isLoading, isError } = useClients();
+  const clients = data?.data?.items ?? [];
+
   const activeClient = useMemo(
-    () =>
-      activeClientId
-        ? clients.find((client) => client.id === activeClientId)
-        : undefined,
-    [activeClientId],
+    () => clients.find((c) => c.uid === activeClientId),
+    [clients, activeClientId],
   );
 
   return (
     <div className="flex flex-col gap-6 rounded-lg border border-border/60 bg-white p-6">
-      <DashboardHeaders onAddClient={() => setAddClientOpen(true)} />
+      <DashboardHeaders
+        totalCount={clients.length}
+        onAddClient={() => setAddClientOpen(true)}
+      />
       <AddClientModal
         open={addClientOpen}
         onClose={() => setAddClientOpen(false)}
       />
-      <div className="grid lg:grid-cols-[540px_minmax(0,1fr)]">
-        <section className="space-y-3 border border-red p-4 bg-white">
+
+      <div className="grid lg:grid-cols-[540px_minmax(0,1fr)] lg:h-[calc(100vh-220px)]">
+        <section className="space-y-3 border border-red p-4 bg-white overflow-y-auto">
           <div className="flex items-center justify-between font-semibold">
             <span className="text-lg text-text-1">Clients</span>
             <span className="text-xs font-medium text-text-1">
-              All clients will display here
+              {isLoading ? "Loading…" : `${clients.length} total`}
             </span>
           </div>
 
-          <ClientAccordion
-            clients={clients}
-            activeClientId={activeClientId}
-            onActiveChange={setActiveClientId}
-          />
+          {isLoading && (
+            <div className="py-6 text-center text-sm text-muted-foreground">
+              Loading clients…
+            </div>
+          )}
+
+          {isError && (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-6 text-sm text-destructive">
+              Failed to load clients. Please refresh.
+            </div>
+          )}
+
+          {!isLoading && !isError && (
+            <ClientAccordion
+              clients={clients}
+              activeClientId={activeClientId}
+              onActiveChange={setActiveClientId}
+            />
+          )}
         </section>
 
-        <section className="space-y-4 bg-[#1D1D1D]/5 p-4">
+        <section className="space-y-4 bg-[#1D1D1D]/5 p-4 overflow-y-auto">
           <div className="flex items-center justify-between text-sm font-semibold">
             <span>Sites</span>
             <span className="text-xs font-medium text-muted-foreground">
-              Select a Client to view site
+              {activeClient ? activeClient.client_name : "Select a client"}
             </span>
           </div>
 

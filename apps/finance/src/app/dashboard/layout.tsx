@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { DashboardLayout } from "@switch-fiji/ui";
 import { useLogout } from "@/hooks/useAuth";
 import { DASHBOARD_LINKS } from "@/constants/routes";
+import QueryProvider from "@/providers/QueryProvider";
 
 type DashboardLayoutProps = {
   children: React.ReactNode;
@@ -23,12 +24,14 @@ export default function FinanceDashboardLayout({
   }, [logout, router]);
 
   return (
-    <DashboardLayout
-      title="Finance"
-      links={DASHBOARD_LINKS}
-      onLogout={handleLogout}
-    >
-      {children}
-    </DashboardLayout>
+    <QueryProvider>
+      <DashboardLayout
+        title="Finance"
+        links={DASHBOARD_LINKS}
+        onLogout={handleLogout}
+      >
+        {children}
+      </DashboardLayout>
+    </QueryProvider>
   );
 }

@@ -1,121 +1,151 @@
-import { Button } from "@switch-fiji/ui";
-import type { ClientSummary } from "./clients";
-import { EnumContractDetailsStatus } from "@/constants/mangle";
-import { ChartLine } from "lucide-react";
+"use client";
 
-const formatStatus = (status: EnumContractDetailsStatus) =>
-  status
-    .split("-")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
+import { useState } from "react";
+import { Button } from "@switch-fiji/ui";
+import { Plus, Cpu, Radio } from "lucide-react";
+import { useSites } from "@/hooks/useSite";
+import type { ClientModel } from "@/types/client";
+import AddSiteModal from "./AddSiteModal";
 
 type ClientSitesPanelProps = {
-  client?: ClientSummary;
+  client?: ClientModel;
 };
 
 export default function ClientSitesPanel({ client }: ClientSitesPanelProps) {
-  if (!client?.sites?.length) {
+  const [addSiteOpen, setAddSiteOpen] = useState(false);
+  const { data, isLoading, isError } = useSites(client?.uid);
+  const sites = data?.data ?? [];
+
+  if (!client) {
     return (
       <div className="rounded-lg border bg-neutral-50/70 px-4 py-6 text-sm text-muted-foreground">
-        No sites available for this client yet.
+        Select a client to view their sites.
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      {client.sites.map((site) => (
-        <div key={site.name} className="rounded-lg border bg-text-1 0">
-          <div className="bg-white rounded-sm py-3">
-            <div className="flex items-center justify-between gap-2  px-4 py-3">
-              <span className="text-sm font-semibold">{site.name}</span>
-              <span
-                className={`rounded-xs px-4 py-2 text-xs font-semibold text-white flex items-center gap-2 ${site.tagTone}`}
-              >
-                <ChartLine size={16} />
-                {site.contractMode} {site.contractType}
-              </span>
-            </div>
-            <div className="bg-neutral-100 mx-4">
-              <div className="space-y-3 px-4 py-3 text-xs text-muted-foreground">
-                <div className="grid grid-cols-[auto_auto] justify-start gap-x-6 gap-y-2">
-                  <span>Expected Generation (YTD)</span>
-                  <span className="font-semibold text-foreground">
-                    {site.expected}
-                  </span>
+    <>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">
+            {isLoading
+              ? "Loading sites..."
+              : `${sites.length} site${sites.length !== 1 ? "s" : ""}`}
+          </span>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => setAddSiteOpen(true)}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add Site
+          </Button>
+        </div>
 
-                  <span>Actual Generation (YTD)</span>
-                  <span className="font-semibold text-foreground">
-                    {site.actual}
-                  </span>
+        {isLoading && (
+          <div className="rounded-lg border bg-neutral-50/70 px-4 py-6 text-sm text-muted-foreground">
+            Loading sites…
+          </div>
+        )}
 
-                  <span>Billing Progress</span>
-                  <span className="font-semibold text-foreground">
-                    {site.billing}
-                  </span>
+        {isError && (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-6 text-sm text-destructive">
+            Failed to load sites. Please try again.
+          </div>
+        )}
 
-                  <span>Cumulative kWh (YTD)</span>
-                  <span className="font-semibold text-foreground">
-                    {site.cumulative}
+        {!isLoading && !isError && sites.length === 0 && (
+          <div className="rounded-lg border bg-neutral-50/70 px-4 py-6 text-sm text-muted-foreground">
+            No sites yet for{" "}
+            <span className="font-medium text-foreground">
+              {client.client_name}
+            </span>
+            . Add one to get started.
+          </div>
+        )}
+
+        {sites.map((site) => (
+          <div key={site.uid} className="rounded-lg border bg-text-1">
+            <div className="rounded-sm bg-white py-3">
+              <div className="flex items-center justify-between gap-2 px-4 py-3">
+                <span className="text-sm font-semibold">
+                  {site.site_name ?? "Unnamed Site"}
+                </span>
+                {site.site_id && (
+                  <span className="rounded-xs bg-primary px-3 py-1 text-xs font-semibold text-white">
+                    {site.site_id}
                   </span>
-                </div>
-                <div
-                  className={`rounded-md px-3 py-2 text-xs font-semibold ${site.alertTone}`}
-                >
-                  {site.alert}
-                </div>
-                <div className="rounded-md border bg-white px-3 py-2">
-                  <div className="text-xs font-semibold text-foreground">
-                    Contract details
-                  </div>
-                  <div className="mt-2 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
-                    <div className="flex items-center justify-between gap-3">
-                      <span>Type</span>
-                      <span className="font-semibold text-foreground">
-                        {site.contractType}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <span>System mode</span>
-                      <span className="font-semibold text-foreground">
-                        {site.contractMode}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <span>Status</span>
-                      <span className="font-semibold text-foreground">
-                        {formatStatus(site.contractStatus)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <span>Billing frequency</span>
-                      <span className="font-semibold text-foreground">
-                        {site.billingFrequency}
-                      </span>
-                    </div>
-                  </div>
-                </div>
+                )}
               </div>
-              <div className="flex gap-2 border-t px-4 py-3 max-w-[500px] ">
-                <Button
-                  className="min-w-[140px] text-sm rounded-sm "
-                  size="lg"
-                  variant="primary"
-                >
-                  View invoice
-                </Button>
-                <Button
-                  variant="outlined"
-                  className="min-w-[140px] text-sm rounded-sm"
-                  size="lg"
-                >
-                  View Site Contract
-                </Button>
+
+              <div className="mx-4 bg-neutral-100">
+                <div className="space-y-3 px-4 py-3 text-xs text-muted-foreground">
+                  <div className="grid grid-cols-[auto_auto] justify-start gap-x-6 gap-y-2">
+                    <span>Site UID</span>
+                    <span className="font-mono font-semibold text-foreground">
+                      {site.uid.slice(0, 8)}…
+                    </span>
+
+                    <span>Client UID</span>
+                    <span className="font-mono font-semibold text-foreground">
+                      {site.client_uid.slice(0, 8)}…
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <div className="flex items-center gap-2 rounded-md border bg-white px-3 py-2">
+                      <Radio className="h-4 w-4 text-primary" />
+                      <div>
+                        <p className="text-[10px] text-muted-foreground">
+                          Gateway ID
+                        </p>
+                        <p className="text-xs font-semibold text-foreground">
+                          {site.gateway_id ?? "—"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 rounded-md border bg-white px-3 py-2">
+                      <Cpu className="h-4 w-4 text-primary" />
+                      <div>
+                        <p className="text-[10px] text-muted-foreground">
+                          Firmware
+                        </p>
+                        <p className="text-xs font-semibold text-foreground">
+                          {site.firmware ?? "—"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 border-t px-4 py-3">
+                  <Button
+                    className="min-w-[140px] rounded-sm text-sm"
+                    size="lg"
+                    variant="primary"
+                  >
+                    View Invoice
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    className="min-w-[140px] rounded-sm text-sm"
+                    size="lg"
+                  >
+                    View Contract
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+
+      <AddSiteModal
+        open={addSiteOpen}
+        clientUid={client.uid}
+        onClose={() => setAddSiteOpen(false)}
+      />
+    </>
   );
 }
