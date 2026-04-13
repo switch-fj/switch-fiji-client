@@ -14,7 +14,6 @@ import {
   InputField,
 } from "@workspace/ui";
 import {
-  loginBaseSchema,
   loginEmailSchema,
   loginOtpSchema,
   loginSchema,

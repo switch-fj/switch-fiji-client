@@ -1,6 +1,4 @@
 import { forwardRef, ReactNode } from 'react';
-
-type TOption = { value: string; label: string; disable?: boolean };
 import {
   FormControl,
   FormDescription,
@@ -16,6 +14,8 @@ import {
   SelectValue
 } from '../ui/select';
 import { SelectProps } from '@radix-ui/react-select';
+
+type TOption = { value: string; label: string; disable?: boolean };
 
 interface ISelectFormProps extends SelectProps {
   name: string;
