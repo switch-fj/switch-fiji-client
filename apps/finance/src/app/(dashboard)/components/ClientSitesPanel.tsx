@@ -5,7 +5,11 @@ import { Button } from "@workspace/ui"
 import { Plus, Cpu, Radio } from "lucide-react"
 import { useSites } from "@/hooks/useSite"
 import type { ClientModel } from "@/types/client"
+import { EnumContractType, EnumContractSystemMode } from "@/constants/mangle"
 import AddSiteModal from "./AddSiteModal"
+import CreateContractSheet from "./CreateContractSheet"
+import ContractDetailsSheet from "./ContractDetailsSheet"
+import ViewContractSheet from "./ViewContractSheet"
 
 type ClientSitesPanelProps = {
   client?: ClientModel
@@ -13,6 +17,21 @@ type ClientSitesPanelProps = {
 
 export default function ClientSitesPanel({ client }: ClientSitesPanelProps) {
   const [addSiteOpen, setAddSiteOpen] = useState(false)
+  const [contractSheet, setContractSheet] = useState<{
+    siteUid: string
+    siteName: string | null
+  } | null>(null)
+  const [detailsSheet, setDetailsSheet] = useState<{
+    contractUid: string
+    contractType: EnumContractType
+    systemMode: EnumContractSystemMode
+    currency: string
+    siteName: string | null
+  } | null>(null)
+  const [viewSheet, setViewSheet] = useState<{
+    contractUid: string
+    siteName: string | null
+  } | null>(null)
   const { data, isLoading, isError } = useSites(client?.uid)
   const sites = data?.data ?? []
 
@@ -127,13 +146,35 @@ export default function ClientSitesPanel({ client }: ClientSitesPanelProps) {
                   >
                     View Invoice
                   </Button>
-                  <Button
-                    variant="outlined"
-                    className="min-w-[140px] rounded-sm text-sm"
-                    size="lg"
-                  >
-                    View Contract
-                  </Button>
+                  {site.contract ? (
+                    <Button
+                      variant="outlined"
+                      className="min-w-[140px] rounded-sm text-sm"
+                      size="lg"
+                      onClick={() =>
+                        setViewSheet({
+                          contractUid: site.contract!.uid,
+                          siteName: site.site_name,
+                        })
+                      }
+                    >
+                      View Contract
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outlined"
+                      className="min-w-[140px] rounded-sm text-sm"
+                      size="lg"
+                      onClick={() =>
+                        setContractSheet({
+                          siteUid: site.uid,
+                          siteName: site.site_name,
+                        })
+                      }
+                    >
+                      Create Contract
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>
@@ -146,6 +187,55 @@ export default function ClientSitesPanel({ client }: ClientSitesPanelProps) {
         clientUid={client.uid}
         onClose={() => setAddSiteOpen(false)}
       />
+
+      {contractSheet && (
+        <CreateContractSheet
+          open={!!contractSheet}
+          onClose={() => setContractSheet(null)}
+          clientUid={client.uid}
+          clientName={client.client_name}
+          siteUid={contractSheet.siteUid}
+          siteName={contractSheet.siteName}
+          onContractCreated={(
+            contractUid,
+            contractType,
+            systemMode,
+            currency
+          ) => {
+            setDetailsSheet({
+              contractUid,
+              contractType,
+              systemMode,
+              currency,
+              siteName: contractSheet.siteName,
+            })
+          }}
+        />
+      )}
+
+      {viewSheet && (
+        <ViewContractSheet
+          open={!!viewSheet}
+          onClose={() => setViewSheet(null)}
+          contractUid={viewSheet.contractUid}
+          clientName={client.client_name}
+          siteName={viewSheet.siteName}
+        />
+      )}
+
+      {detailsSheet && (
+        <ContractDetailsSheet
+          open={!!detailsSheet}
+          onClose={() => setDetailsSheet(null)}
+          clientUid={client.uid}
+          contractUid={detailsSheet.contractUid}
+          contractType={detailsSheet.contractType}
+          systemMode={detailsSheet.systemMode}
+          currency={detailsSheet.currency}
+          clientName={client.client_name}
+          siteName={detailsSheet.siteName}
+        />
+      )}
     </>
   )
 }
