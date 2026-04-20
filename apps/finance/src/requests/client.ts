@@ -1,33 +1,31 @@
-import api from "@/lib/axios";
+import api from "@/lib/axios"
+import { CLIENT } from "@/constants/api"
 import type {
   CreateClientInput,
   PaginatedClients,
   ServerResponse,
-} from "@/types/client";
+} from "@/types/client"
 
-export type { CreateClientInput } from "@/types/client";
+export type { CreateClientInput } from "@/types/client"
 
 export type GetClientsParams = {
-  limit?: number;
-  cursor?: string;
-};
+  limit?: number
+  cursor?: string
+}
 
 export const getClients = async (
-  params?: GetClientsParams,
+  params?: GetClientsParams
 ): Promise<ServerResponse<PaginatedClients>> => {
   const { data } = await api.get<ServerResponse<PaginatedClients>>(
-    "/api/v1/admin/clients",
-    { params },
-  );
-  return data;
-};
+    CLIENT.LIST,
+    { params }
+  )
+  return data
+}
 
 export const addClient = async (
-  payload: CreateClientInput,
+  payload: CreateClientInput
 ): Promise<ServerResponse<string>> => {
-  const { data } = await api.post<ServerResponse<string>>(
-    "/api/v1/admin/client/add",
-    payload,
-  );
-  return data;
-};
+  const { data } = await api.post<ServerResponse<string>>(CLIENT.ADD, payload)
+  return data
+}

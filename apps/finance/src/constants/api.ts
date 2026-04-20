@@ -8,31 +8,14 @@ export const AUTH = {
   NEW_PWD: "/auth/reset-password",
   CHANGE_PWD: "/auth/change-password",
   RESEND_EMAIL_VERIFICATION: "/auth/resend-email-verification",
-} as const;
+} as const
 
-export const FINANCE = {
-  INVOICES: {
-    LIST: "/finance/invoices",
-    CREATE: "/finance/invoices",
-    DETAILS: (id: string) => `/finance/invoices/${id}`,
-    UPDATE: (id: string) => `/finance/invoices/${id}`,
-    VOID: (id: string) => `/finance/invoices/${id}/void`,
-  },
-  PAYMENTS: {
-    LIST: "/finance/payments",
-    CREATE: "/finance/payments",
-    DETAILS: (id: string) => `/finance/payments/${id}`,
-    REFUND: (id: string) => `/finance/payments/${id}/refund`,
-  },
-  PAYOUTS: {
-    LIST: "/finance/payouts",
-    REQUEST: "/finance/payouts",
-    DETAILS: (id: string) => `/finance/payouts/${id}`,
-    CANCEL: (id: string) => `/finance/payouts/${id}/cancel`,
-  },
-  REPORTS: {
-    OVERVIEW: "/finance/reports/overview",
-    REVENUE: "/finance/reports/revenue",
-    CASHFLOW: "/finance/reports/cashflow",
-  },
-} as const;
+export const CLIENT = {
+  LIST: "/api/v1/admin/clients",
+  ADD: "/api/v1/admin/client/add",
+} as const
+
+export const SITE = {
+  LIST: (clientUid: string) => `/api/v1/admin/sites/${clientUid}`,
+  ADD: "/api/v1/admin/site/add",
+} as const
