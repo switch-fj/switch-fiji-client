@@ -28,7 +28,7 @@ function DatePicker({
     <Popover>
       <PopoverTrigger asChild>
         <Button
-          variant="outlined"
+          variant="outline"
           disabled={disabled}
           className={cn(
             "border-input justify-start border bg-white text-left font-normal",
