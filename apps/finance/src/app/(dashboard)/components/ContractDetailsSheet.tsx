@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useEffect } from "react"
+import { useMemo, useEffect, useRef } from "react"
 import { useForm, useFieldArray, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -261,8 +261,11 @@ export default function ContractDetailsSheet({
       : emptyDefaults,
   })
 
+  const skipTariffReplace = useRef(!!existingDetails)
+
   useEffect(() => {
     if (existingDetails) {
+      skipTariffReplace.current = true
       reset(detailsToDefaults(existingDetails))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -270,9 +273,14 @@ export default function ContractDetailsSheet({
 
   const { fields, replace } = useFieldArray({ control, name: "tariffs" })
 
-  // Auto-generate tariff rows whenever tariff period count changes
+  // Auto-generate tariff rows whenever tariff period count changes.
+  // Skip when the change comes from a pre-fill reset so we don't wipe existing rows.
   const tariffPeriods = watch("tariff_periods")
   useEffect(() => {
+    if (skipTariffReplace.current) {
+      skipTariffReplace.current = false
+      return
+    }
     const count = parseInt(tariffPeriods ?? "0", 10)
     if (!count || isNaN(count)) {
       replace([])
@@ -397,7 +405,7 @@ export default function ContractDetailsSheet({
     <Sheet open={open} onOpenChange={(o) => !o && handleClose()}>
       <SheetContent
         side="right"
-        className="border-border w-screen! max-w-none! overflow-y-auto rounded-t-3xl border bg-[#FAFAFA] p-10"
+        className="border-border w-screen! max-w-none! overflow-y-auto border bg-[#FAFAFA] p-10"
       >
         <div className=" ">
           <div className="border-border overflow-hidden rounded-2xl border bg-[#fafafa]">

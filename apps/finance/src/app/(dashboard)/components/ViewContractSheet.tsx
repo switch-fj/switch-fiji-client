@@ -98,7 +98,7 @@ export default function ViewContractSheet({
 
   return (
     <>
-      {contract && editOpen && d && (
+      {contract && editOpen && (
         <ContractDetailsSheet
           open={editOpen}
           onClose={() => setEditOpen(false)}
@@ -109,30 +109,32 @@ export default function ViewContractSheet({
           currency={contract.currency}
           clientName={clientName}
           siteName={siteName}
-          existingDetails={d}
+          existingDetails={d ?? undefined}
         />
       )}
 
       <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
         <SheetContent
           side="right"
-          className="border-border top-11 w-screen! max-w-none! overflow-y-auto rounded-t-3xl border bg-[#FAFAFA] p-10 sm:top-21"
+          className="border-border w-screen! max-w-none! overflow-y-auto border bg-[#FAFAFA] p-10"
         >
           <div className="border-border overflow-hidden rounded-2xl border bg-white">
             {/* ── Header ── */}
             <div className="border-border flex items-center justify-between border-b px-8 py-5">
               <p className="text-text-1 text-lg font-semibold">View Contract</p>
               <div className="flex gap-2">
-                {d && !d.commissioned_at && (
-                  <Button
-                    variant="outlined"
-                    size="md"
-                    className="rounded-sm"
-                    onClick={() => setEditOpen(true)}
-                  >
-                    Edit
-                  </Button>
-                )}
+                {d &&
+                  (!d.commissioned_at ||
+                    new Date(d.commissioned_at) > new Date()) && (
+                    <Button
+                      variant="outlined"
+                      size="md"
+                      className="rounded-sm"
+                      onClick={() => setEditOpen(true)}
+                    >
+                      Edit
+                    </Button>
+                  )}
                 <Button
                   variant="primary"
                   size="md"

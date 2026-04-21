@@ -108,7 +108,7 @@ export default function CreateContractSheet({
     <Sheet open={open} onOpenChange={(o) => !o && handleClose()}>
       <SheetContent
         side="right"
-        className="border-border top-11 w-screen! max-w-none! overflow-y-auto rounded-t-3xl border bg-[#FAFAFA] p-10 sm:top-21"
+        className="border-border w-screen! max-w-none! overflow-y-auto border bg-[#FAFAFA] p-10"
       >
         <div className="border-border/60 flex flex-1 flex-col items-center justify-center rounded-2xl border px-4 py-10">
           <div className="pb-8 text-center">
