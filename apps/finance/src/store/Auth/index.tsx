@@ -84,6 +84,7 @@ class AuthStore {
       runInAction(() => {
         this.accessToken = response.data.access_token ?? this.accessToken
       })
+      console.log("[Auth] Login cookies:", document.cookie)
       return response
     } catch (err) {
       const message = getErrorMessage(err)
@@ -113,6 +114,7 @@ class AuthStore {
       runInAction(() => {
         this.accessToken = response.data.access_token ?? this.accessToken
       })
+      console.log("[Auth] VerifyLogin cookies:", document.cookie)
       return response
     } catch (err) {
       const message = getErrorMessage(err)
