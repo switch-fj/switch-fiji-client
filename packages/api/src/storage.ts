@@ -1,83 +1,64 @@
 export type AuthStorage = {
-  getToken: () => string | null;
-  setToken: (token: string) => void;
-  clearToken: () => void;
-};
+  getToken: () => string | null
+  setToken: (token: string) => void
+  clearToken: () => void
+}
 
-const COOKIE_NAME = "access_token";
-const SECRET = process.env.NEXT_PUBLIC_SESSION_SECRET ?? "";
+const SECRET = process.env.NEXT_PUBLIC_SESSION_SECRET ?? ""
 
 const xorCipher = (input: string, key: string) => {
   if (!key) {
-    return input;
+    return input
   }
-  let output = "";
+  let output = ""
   for (let i = 0; i < input.length; i += 1) {
     output += String.fromCharCode(
-      input.charCodeAt(i) ^ key.charCodeAt(i % key.length),
-    );
+      input.charCodeAt(i) ^ key.charCodeAt(i % key.length)
+    )
   }
-  return output;
-};
+  return output
+}
 
 const encodeToken = (token: string) => {
   if (!SECRET) {
-    return token;
+    return token
   }
   try {
-    return btoa(xorCipher(token, SECRET));
+    return btoa(xorCipher(token, SECRET))
   } catch {
-    return token;
+    return token
   }
-};
+}
 
 const decodeToken = (token: string) => {
   if (!SECRET) {
-    return token;
+    return token
   }
   try {
-    return xorCipher(atob(token), SECRET);
+    return xorCipher(atob(token), SECRET)
   } catch {
-    return token;
+    return token
   }
-};
-
-const setCookie = (value: string) => {
-  if (typeof document === "undefined") {
-    return;
-  }
-  const secure = window.location.protocol === "https:" ? "; secure" : "";
-  document.cookie = `${COOKIE_NAME}=${value}; path=/; samesite=lax${secure}`;
-};
-
-const clearCookie = () => {
-  if (typeof document === "undefined") {
-    return;
-  }
-  document.cookie = `${COOKIE_NAME}=; path=/; max-age=0; samesite=lax`;
-};
+}
 
 export const defaultAuthStorage: AuthStorage = {
   getToken: () => {
     if (typeof window === "undefined") {
-      return null;
+      return null
     }
-    const stored = window.localStorage.getItem("access_token");
-    return stored ? decodeToken(stored) : null;
+    const stored = window.localStorage.getItem("access_token")
+    return stored ? decodeToken(stored) : null
   },
   setToken: (token: string) => {
     if (typeof window === "undefined") {
-      return;
+      return
     }
-    const encoded = encodeToken(token);
-    window.localStorage.setItem("access_token", encoded);
-    setCookie(encoded);
+    window.localStorage.setItem("access_token", encodeToken(token))
   },
   clearToken: () => {
     if (typeof window === "undefined") {
-      return;
+      return
     }
-    window.localStorage.removeItem("access_token");
-    clearCookie();
+    window.localStorage.removeItem("access_token")
   },
-};
+}
