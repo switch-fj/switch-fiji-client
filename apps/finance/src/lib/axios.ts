@@ -49,8 +49,10 @@ api.interceptors.response.use(
       isRefreshing = true
 
       try {
-        const { data } = await api.post<ServerResponse<TokenModel>>(
-          "/api/v1/auth/new-access-token"
+        const { data } = await axios.post<ServerResponse<TokenModel>>(
+          "/api/auth/refresh",
+          null,
+          { withCredentials: true }
         )
         const newToken = data.data.access_token
         defaultAuthStorage.setToken(newToken)

@@ -7,9 +7,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? ""
 const SESSION_SECRET = process.env.NEXT_PUBLIC_SESSION_SECRET ?? ""
 
 const xorCipher = (input: string, key: string) => {
-  if (!key) {
-    return input
-  }
+  if (!key) return input
   let output = ""
   for (let i = 0; i < input.length; i += 1) {
     output += String.fromCharCode(
@@ -19,10 +17,17 @@ const xorCipher = (input: string, key: string) => {
   return output
 }
 
-const decodeToken = (token: string) => {
-  if (!SESSION_SECRET) {
+const encodeToken = (token: string) => {
+  if (!SESSION_SECRET) return token
+  try {
+    return btoa(xorCipher(token, SESSION_SECRET))
+  } catch {
     return token
   }
+}
+
+const decodeToken = (token: string) => {
+  if (!SESSION_SECRET) return token
   try {
     return xorCipher(atob(token), SESSION_SECRET)
   } catch {
@@ -30,26 +35,42 @@ const decodeToken = (token: string) => {
   }
 }
 
+const baseUrl = () => {
+  const url = API_BASE_URL.replace(/\/$/, "")
+  const prefix = url.endsWith("/api/v1") ? "" : "/api/v1"
+  return `${url}${prefix}`
+}
+
 const isTokenValid = async (token: string) => {
-  if (!API_BASE_URL) {
-    return false
-  }
-
-  const normalizedBaseUrl = API_BASE_URL.replace(/\/$/, "")
-  const profilePath = normalizedBaseUrl.endsWith("/api/v1")
-    ? "/auth/profile"
-    : "/api/v1/auth/profile"
-
+  if (!API_BASE_URL) return false
   try {
-    const response = await fetch(`${normalizedBaseUrl}${profilePath}`, {
+    const response = await fetch(`${baseUrl()}/auth/profile`, {
       method: "GET",
-      headers: {
-        Authorization: `Bearer ${decodeToken(token)}`,
-      },
+      headers: { Authorization: `Bearer ${decodeToken(token)}` },
     })
     return response.ok
   } catch {
     return false
+  }
+}
+
+const refreshAccessToken = async (
+  request: NextRequest
+): Promise<string | null> => {
+  if (!API_BASE_URL) return null
+  try {
+    const response = await fetch(`${baseUrl()}/auth/new-access-token`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: request.headers.get("cookie") ?? "",
+      },
+    })
+    if (!response.ok) return null
+    const data = await response.json()
+    return data.data?.access_token ?? null
+  } catch {
+    return null
   }
 }
 
@@ -61,17 +82,25 @@ export async function middleware(request: NextRequest) {
   }
 
   const token = request.cookies.get(AUTH_COOKIE)?.value
+  const tokenValid = token ? await isTokenValid(token) : false
 
-  if (!token) {
-    const loginUrl = new URL("/auth/login", request.url)
-    return NextResponse.redirect(loginUrl)
-  }
+  if (!tokenValid) {
+    const newToken = await refreshAccessToken(request)
 
-  const tokenIsValid = await isTokenValid(token)
-  if (!tokenIsValid) {
-    const loginUrl = new URL("/auth/login", request.url)
-    const response = NextResponse.redirect(loginUrl)
-    response.cookies.set(AUTH_COOKIE, "", { path: "/", maxAge: 0 })
+    if (!newToken) {
+      const loginUrl = new URL("/auth/login", request.url)
+      const response = NextResponse.redirect(loginUrl)
+      response.cookies.set(AUTH_COOKIE, "", { path: "/", maxAge: 0 })
+      return response
+    }
+
+    const encoded = encodeToken(newToken)
+    const response = NextResponse.next()
+    response.cookies.set(AUTH_COOKIE, encoded, {
+      path: "/",
+      sameSite: "lax",
+      secure: request.nextUrl.protocol === "https:",
+    })
     return response
   }
 
