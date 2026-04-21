@@ -35,3 +35,14 @@ export const createContractDetails = async (
   )
   return data
 }
+
+export const updateContractDetails = async (
+  contractDetailsUid: string,
+  payload: ContractDetailsPayload
+): Promise<ServerResponse<string>> => {
+  const { data } = await api.put<ServerResponse<string>>(
+    `/api/v1/contract/details/${contractDetailsUid}`,
+    payload
+  )
+  return data
+}

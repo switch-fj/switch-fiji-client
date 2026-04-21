@@ -28,8 +28,15 @@ import {
   IMPLEMENTATION_PERIOD_OPTIONS,
   TARIFF_SLOT_TYPE_OPTIONS,
 } from "@/constants/contract"
-import { useCreateContractDetails } from "@/hooks/useContract"
-import type { ContractDetailsPayload } from "@/types/site"
+import {
+  useCreateContractDetails,
+  useUpdateContractDetails,
+} from "@/hooks/useContract"
+import type {
+  ContractDetailsPayload,
+  ContractDetailsRespModel,
+  TariffRespModel,
+} from "@/types/site"
 import ContractSummaryBar from "./ContractSummaryBar"
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
@@ -123,6 +130,59 @@ function makeDetailsSchema(combo: Combo | null) {
   })
 }
 
+// ─── Pre-fill helper ─────────────────────────────────────────────────────────
+
+function detailsToDefaults(d: ContractDetailsRespModel): ContractDetailsValues {
+  const slots: TariffRespModel[] = (() => {
+    try {
+      return JSON.parse(d.tariff_slots ?? "[]")
+    } catch {
+      return []
+    }
+  })()
+  return {
+    term_years: d.term_years != null ? String(d.term_years) : "",
+    signing_date: d.signed_at?.split("T")[0] ?? "",
+    billing_frequency: d.billing_frequency ?? "",
+    tariff_periods: d.tariff_periods != null ? String(d.tariff_periods) : "",
+    commissioning_date: d.commissioned_at?.split("T")[0] ?? "",
+    implementation_period:
+      d.implementation_period != null ? String(d.implementation_period) : "",
+    client_email: "",
+    grid_meter_reading:
+      d.grid_meter_reading_at_commissioning != null
+        ? String(d.grid_meter_reading_at_commissioning)
+        : "",
+    system_size_kwp: d.system_size_kwp != null ? String(d.system_size_kwp) : "",
+    guaranteed_production:
+      d.guaranteed_production_kwh_per_kwp != null
+        ? String(d.guaranteed_production_kwh_per_kwp)
+        : "",
+    equipment_lease: d.equipment_lease_amount ?? "",
+    maintenance: d.maintenance_amount ?? "",
+    solar_production_month: "",
+    estimated_utility:
+      d.estimated_utility != null ? String(d.estimated_utility) : "",
+    monthly_baseline_consumption:
+      d.monthly_baseline_consumption_kwh != null
+        ? String(d.monthly_baseline_consumption_kwh)
+        : "",
+    minimum_consumption_monthly:
+      d.minimum_consumption_monthly_kwh != null
+        ? String(d.minimum_consumption_monthly_kwh)
+        : "",
+    minimum_spend: d.minimum_spend != null ? String(d.minimum_spend) : "",
+    tariffs: slots.map((t) => ({
+      period_number: String(t.period_number),
+      slot: t.slot,
+      slot_type: t.slot_type,
+      rate: String(t.rate),
+      time_start: t.start_time ?? "",
+      time_end: t.end_time ?? "",
+    })),
+  }
+}
+
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 type Props = {
@@ -135,6 +195,7 @@ type Props = {
   currency: string
   clientName: string
   siteName: string | null
+  existingDetails?: ContractDetailsRespModel
 }
 
 // ─── Shared input styles ──────────────────────────────────────────────────────
@@ -153,6 +214,7 @@ export default function ContractDetailsSheet({
   currency,
   clientName,
   siteName,
+  existingDetails,
 }: Props) {
   const combo = useMemo(
     () => getCombo(contractType, systemMode),
@@ -162,6 +224,27 @@ export default function ContractDetailsSheet({
   const show = (field: keyof typeof VIS) => (combo ? VIS[field][combo] : false)
 
   const schema = useMemo(() => makeDetailsSchema(combo), [combo])
+
+  const emptyDefaults: ContractDetailsValues = {
+    term_years: "",
+    signing_date: "",
+    billing_frequency: "",
+    tariff_periods: "",
+    commissioning_date: "",
+    implementation_period: "",
+    client_email: "",
+    grid_meter_reading: "",
+    system_size_kwp: "",
+    guaranteed_production: "",
+    equipment_lease: "",
+    maintenance: "",
+    solar_production_month: "",
+    estimated_utility: "",
+    monthly_baseline_consumption: "",
+    minimum_consumption_monthly: "",
+    minimum_spend: "",
+    tariffs: [],
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const {
@@ -173,27 +256,17 @@ export default function ContractDetailsSheet({
     formState: { errors },
   } = useForm<ContractDetailsValues>({
     resolver: zodResolver(schema) as any,
-    defaultValues: {
-      term_years: "",
-      signing_date: "",
-      billing_frequency: "",
-      tariff_periods: "",
-      commissioning_date: "",
-      implementation_period: "",
-      client_email: "",
-      grid_meter_reading: "",
-      system_size_kwp: "",
-      guaranteed_production: "",
-      equipment_lease: "",
-      maintenance: "",
-      solar_production_month: "",
-      estimated_utility: "",
-      monthly_baseline_consumption: "",
-      minimum_consumption_monthly: "",
-      minimum_spend: "",
-      tariffs: [],
-    },
+    defaultValues: existingDetails
+      ? detailsToDefaults(existingDetails)
+      : emptyDefaults,
   })
+
+  useEffect(() => {
+    if (existingDetails) {
+      reset(detailsToDefaults(existingDetails))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [existingDetails?.uid])
 
   const { fields, replace } = useFieldArray({ control, name: "tariffs" })
 
@@ -239,7 +312,13 @@ export default function ContractDetailsSheet({
     return a + b > 0 ? (a + b).toFixed(2) : ""
   }, [equipmentLease, maintenance])
 
-  const mutation = useCreateContractDetails(clientUid, contractUid)
+  const createMutation = useCreateContractDetails(clientUid, contractUid)
+  const updateMutation = useUpdateContractDetails(
+    clientUid,
+    contractUid,
+    existingDetails?.uid ?? ""
+  )
+  const mutation = existingDetails ? updateMutation : createMutation
 
   const handleClose = () => {
     reset()
@@ -325,7 +404,9 @@ export default function ContractDetailsSheet({
             {/* ── Header ── */}
             <div className="border-border flex items-center justify-between border-b px-8 py-5">
               <p className="text-text-1 text-lg font-semibold">
-                New Contract Wizard
+                {existingDetails
+                  ? "Edit Contract Details"
+                  : "New Contract Wizard"}
               </p>
               <Button
                 type="button"

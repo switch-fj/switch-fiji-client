@@ -88,9 +88,16 @@ export default function ClientSitesPanel({ client }: ClientSitesPanelProps) {
           <div key={site.uid} className="bg-text-1 rounded-lg border">
             <div className="rounded-sm bg-white py-3">
               <div className="flex items-center justify-between gap-2 px-4 py-3">
-                <span className="text-sm font-semibold">
-                  {site.site_name ?? "Unnamed Site"}
-                </span>
+                <div className="flex w-full items-center justify-between gap-3">
+                  <span className="text-sm font-semibold">
+                    {site.site_name ?? "Unnamed Site"}
+                  </span>
+                  {site.contract && (
+                    <span className="bg-blue rounded-xs px-3 py-0.5 text-sm font-medium text-white">
+                      {site.contract.contract_type} {site.contract.system_mode}
+                    </span>
+                  )}
+                </div>
                 {site.site_id && (
                   <span className="bg-primary rounded-xs px-3 py-1 text-xs font-semibold text-white">
                     {site.site_id}

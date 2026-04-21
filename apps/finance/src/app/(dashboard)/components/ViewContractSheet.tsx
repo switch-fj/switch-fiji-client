@@ -98,7 +98,7 @@ export default function ViewContractSheet({
 
   return (
     <>
-      {contract && editOpen && (
+      {contract && editOpen && d && (
         <ContractDetailsSheet
           open={editOpen}
           onClose={() => setEditOpen(false)}
@@ -109,6 +109,7 @@ export default function ViewContractSheet({
           currency={contract.currency}
           clientName={clientName}
           siteName={siteName}
+          existingDetails={d}
         />
       )}
 
@@ -122,14 +123,16 @@ export default function ViewContractSheet({
             <div className="border-border flex items-center justify-between border-b px-8 py-5">
               <p className="text-text-1 text-lg font-semibold">View Contract</p>
               <div className="flex gap-2">
-                <Button
-                  variant="outlined"
-                  size="md"
-                  className="rounded-sm"
-                  onClick={() => setEditOpen(true)}
-                >
-                  Edit
-                </Button>
+                {d && !d.commissioned_at && (
+                  <Button
+                    variant="outlined"
+                    size="md"
+                    className="rounded-sm"
+                    onClick={() => setEditOpen(true)}
+                  >
+                    Edit
+                  </Button>
+                )}
                 <Button
                   variant="primary"
                   size="md"

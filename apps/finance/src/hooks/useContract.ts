@@ -5,6 +5,7 @@ import { toast } from "sonner"
 import {
   createContract,
   createContractDetails,
+  updateContractDetails,
   getContract,
 } from "@/requests/contract"
 import type { CreateContractInput, ContractDetailsPayload } from "@/types/site"
@@ -58,6 +59,31 @@ export const useCreateContractDetails = (
     },
     onError: (error: Error) => {
       toast.error(error.message || "Failed to save contract details.")
+    },
+  })
+}
+
+export const useUpdateContractDetails = (
+  clientUid: string,
+  contractUid: string,
+  contractDetailsUid: string
+) => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (payload: ContractDetailsPayload) =>
+      updateContractDetails(contractDetailsUid, payload),
+    onSuccess: (response) => {
+      toast.success(
+        response.message || "Contract details updated successfully."
+      )
+      queryClient.invalidateQueries({ queryKey: SITE_KEYS.byClient(clientUid) })
+      queryClient.invalidateQueries({
+        queryKey: CONTRACT_KEYS.detail(contractUid),
+      })
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to update contract details.")
     },
   })
 }
