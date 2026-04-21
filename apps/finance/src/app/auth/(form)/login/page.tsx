@@ -3,6 +3,7 @@
 import { LoadingView, LoginView } from "@workspace/auth"
 import { observer } from "mobx-react-lite"
 import { useRouter } from "next/navigation"
+import { useEffect } from "react"
 import { toast } from "sonner"
 import { useStore } from "@/store"
 
@@ -10,6 +11,12 @@ const FinanceLoginPage = observer(() => {
   const { AuthStore } = useStore()
   const router = useRouter()
   const isSubmitting = AuthStore.isLoading.login || AuthStore.isLoading.verify
+
+  useEffect(() => {
+    if (AuthStore.accessToken) {
+      router.replace("/")
+    }
+  }, [AuthStore.accessToken, router])
 
   const handleAuthSuccess = async (response: { message: string }) => {
     toast.success(response.message || "Login successful.")

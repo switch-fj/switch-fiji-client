@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback } from "react"
+import { useCallback, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { DashboardLayout } from "@workspace/ui"
 import { useStore } from "@/store"
@@ -16,6 +16,12 @@ export default function FinanceDashboardLayout({
 }: DashboardLayoutProps) {
   const router = useRouter()
   const { AuthStore } = useStore()
+
+  useEffect(() => {
+    if (!AuthStore.accessToken) {
+      router.replace("/auth/login")
+    }
+  }, [AuthStore.accessToken, router])
 
   const handleLogout = useCallback(async () => {
     AuthStore.logout()
