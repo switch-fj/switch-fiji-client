@@ -50,7 +50,7 @@ api.interceptors.response.use(
 
       try {
         const { data } = await axios.post<ServerResponse<TokenModel>>(
-          "/api/auth/refresh",
+          `${getApiBaseUrl()}/auth/new-access-token`,
           null,
           { withCredentials: true }
         )
