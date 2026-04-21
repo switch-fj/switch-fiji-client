@@ -219,6 +219,7 @@ export default function ClientSitesPanel({ client }: ClientSitesPanelProps) {
           onClose={() => setViewSheet(null)}
           contractUid={viewSheet.contractUid}
           clientName={client.client_name}
+          clientEmail={client.client_email}
           siteName={viewSheet.siteName}
         />
       )}

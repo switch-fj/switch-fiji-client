@@ -18,151 +18,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@workspace/ui"
+import { EnumContractType, EnumContractSystemMode } from "@/constants/mangle"
 import {
-  EnumContractType,
-  EnumContractSystemMode,
-  EnumContractBillingFrequency,
-} from "@/constants/mangle"
+  type Combo,
+  getCombo,
+  VIS,
+  BILLING_FREQUENCY_OPTIONS,
+  TARIFF_PERIOD_OPTIONS,
+  IMPLEMENTATION_PERIOD_OPTIONS,
+  TARIFF_SLOT_TYPE_OPTIONS,
+} from "@/constants/contract"
 import { useCreateContractDetails } from "@/hooks/useContract"
 import type { ContractDetailsPayload } from "@/types/site"
-
-// ─── Combo ────────────────────────────────────────────────────────────────────
-
-type Combo = "ppa_off_grid" | "ppa_on_grid" | "lease_on_grid"
-
-function getCombo(
-  contractType: EnumContractType,
-  systemMode: EnumContractSystemMode
-): Combo | null {
-  if (
-    contractType === EnumContractType.PPA &&
-    systemMode === EnumContractSystemMode.OFF_GRID
-  )
-    return "ppa_off_grid"
-  if (
-    contractType === EnumContractType.PPA &&
-    systemMode === EnumContractSystemMode.ON_GRID
-  )
-    return "ppa_on_grid"
-  if (
-    contractType === EnumContractType.LEASE &&
-    systemMode === EnumContractSystemMode.ON_GRID
-  )
-    return "lease_on_grid"
-  return null
-}
-
-// ─── Field visibility ─────────────────────────────────────────────────────────
-
-const VIS = {
-  term_years: { ppa_off_grid: true, ppa_on_grid: true, lease_on_grid: true },
-  signing_date: { ppa_off_grid: true, ppa_on_grid: true, lease_on_grid: true },
-  billing_frequency: {
-    ppa_off_grid: true,
-    ppa_on_grid: true,
-    lease_on_grid: true,
-  },
-  tariff_periods: {
-    ppa_off_grid: true,
-    ppa_on_grid: true,
-    lease_on_grid: false,
-  },
-  commissioning_date: {
-    ppa_off_grid: true,
-    ppa_on_grid: true,
-    lease_on_grid: true,
-  },
-  contract_end: {
-    ppa_off_grid: false,
-    ppa_on_grid: true,
-    lease_on_grid: false,
-  },
-  implementation_period: {
-    ppa_off_grid: true,
-    ppa_on_grid: true,
-    lease_on_grid: true,
-  },
-  client_email: { ppa_off_grid: true, ppa_on_grid: true, lease_on_grid: true },
-  grid_meter_reading: {
-    ppa_off_grid: false,
-    ppa_on_grid: true,
-    lease_on_grid: true,
-  },
-  system_size_kwp: {
-    ppa_off_grid: false,
-    ppa_on_grid: true,
-    lease_on_grid: true,
-  },
-  guaranteed_production: {
-    ppa_off_grid: false,
-    ppa_on_grid: true,
-    lease_on_grid: true,
-  },
-  equipment_lease: {
-    ppa_off_grid: false,
-    ppa_on_grid: false,
-    lease_on_grid: true,
-  },
-  maintenance: { ppa_off_grid: false, ppa_on_grid: false, lease_on_grid: true },
-  total: { ppa_off_grid: false, ppa_on_grid: false, lease_on_grid: true },
-  solar_production_month: {
-    ppa_off_grid: false,
-    ppa_on_grid: false,
-    lease_on_grid: true,
-  },
-  estimated_utility: {
-    ppa_off_grid: true,
-    ppa_on_grid: true,
-    lease_on_grid: true,
-  },
-  monthly_baseline_consumption: {
-    ppa_off_grid: true,
-    ppa_on_grid: true,
-    lease_on_grid: false,
-  },
-  minimum_consumption_monthly: {
-    ppa_off_grid: true,
-    ppa_on_grid: true,
-    lease_on_grid: false,
-  },
-  minimum_spend: {
-    ppa_off_grid: true,
-    ppa_on_grid: true,
-    lease_on_grid: false,
-  },
-  tariffs_table: {
-    ppa_off_grid: true,
-    ppa_on_grid: true,
-    lease_on_grid: false,
-  },
-} satisfies Record<string, Record<Combo, boolean>>
-
-// ─── Options ──────────────────────────────────────────────────────────────────
-
-const BILLING_FREQUENCY_OPTIONS = Object.values(
-  EnumContractBillingFrequency
-).map((v) => ({
-  label: v.charAt(0).toUpperCase() + v.slice(1),
-  value: v,
-}))
-
-const TARIFF_PERIOD_OPTIONS = [
-  { label: "2", value: "2" },
-  { label: "3", value: "3" },
-  { label: "4", value: "4" },
-]
-
-const IMPLEMENTATION_PERIOD_OPTIONS = [
-  { label: "1 Month", value: "1" },
-  { label: "3 Months", value: "3" },
-  { label: "6 Months", value: "6" },
-  { label: "12 Months", value: "12" },
-]
-
-const TARIFF_SLOT_TYPE_OPTIONS = [
-  { label: "Fixed", value: "Fixed" },
-  { label: "Variable", value: "Variable" },
-]
+import ContractSummaryBar from "./ContractSummaryBar"
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
@@ -475,40 +343,14 @@ export default function ContractDetailsSheet({
             </div>
 
             {/* ── Summary ── */}
-            <div className="border-border grid grid-cols-[440px_1fr] gap-0 border-b px-8 py-5">
-              <div className="space-y-1.5 text-sm">
-                <div className="grid grid-cols-[140px_1fr] gap-1">
-                  <span className="text-text-1 font-semibold">Customer:</span>
-                  <span className="text-text-1">{clientName}</span>
-                </div>
-                <div className="grid grid-cols-[140px_1fr] gap-1">
-                  <span className="text-text-1 font-semibold">Site:</span>
-                  <span className="text-text-1">{siteName ?? "—"}</span>
-                </div>
-                <div className="grid grid-cols-[140px_1fr] gap-1">
-                  <span className="text-text-1 font-semibold">
-                    Contract reference:
-                  </span>
-                  <span className="text-text-1">—</span>
-                </div>
-              </div>
-              <div className="space-y-1.5 text-sm">
-                <div className="grid grid-cols-[140px_1fr] gap-1">
-                  <span className="text-text-1 font-semibold">
-                    Contract Type
-                  </span>
-                  <span className="text-text-1">{contractTypeLabel}</span>
-                </div>
-                <div className="grid grid-cols-[140px_1fr] gap-1">
-                  <span className="text-text-1 font-semibold">System Mode</span>
-                  <span className="text-text-1">{systemModeLabel}</span>
-                </div>
-                <div className="grid grid-cols-[140px_1fr] gap-1">
-                  <span className="text-text-1 font-semibold">Currency</span>
-                  <span className="text-text-1">{currency}</span>
-                </div>
-              </div>
-            </div>
+            <ContractSummaryBar
+              clientName={clientName}
+              siteName={siteName}
+              contractRef="—"
+              contractTypeLabel={contractTypeLabel}
+              systemModeLabel={systemModeLabel}
+              currency={currency}
+            />
 
             {/* ── Form ── */}
             <form

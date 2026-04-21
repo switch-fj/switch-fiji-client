@@ -66,13 +66,12 @@ export type ContractModel = {
 }
 
 export type TariffRespModel = {
-  uid: string
   period_number: number
   slot: string
   slot_type: string
   rate: number
-  time_start: string | null
-  time_end: string | null
+  start_time: string | null
+  end_time: string | null
 }
 
 export type ContractDetailsRespModel = {
@@ -98,7 +97,7 @@ export type ContractDetailsRespModel = {
   minimum_spend: number | null
   estimated_utility: number | null
   tariff_periods: number | null
-  tariffs: TariffRespModel[] | null
+  tariff_slots: string | null
 }
 
 export type ContractDetailedRespModel = {

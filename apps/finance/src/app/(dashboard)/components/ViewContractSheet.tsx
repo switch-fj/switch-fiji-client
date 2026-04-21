@@ -6,20 +6,23 @@ import { Sheet, SheetContent, Skeleton, Button } from "@workspace/ui"
 import { CheckCircle } from "lucide-react"
 import { useGetContract } from "@/hooks/useContract"
 import { EnumContractType, EnumContractSystemMode } from "@/constants/mangle"
+import { getCombo, VIS } from "@/constants/contract"
 import type { ContractDetailsRespModel, TariffRespModel } from "@/types/site"
 import ContractDetailsSheet from "./ContractDetailsSheet"
+import ContractSummaryBar from "./ContractSummaryBar"
 
 type Props = {
   open: boolean
   onClose: () => void
   contractUid: string
   clientName: string
+  clientEmail: string
   siteName: string | null
 }
 
-const LABEL = "text-xs text-muted-foreground shrink-0"
-const VALUE = "text-xs font-medium text-text-1"
-const VALUE_MUTED = "text-xs font-medium text-muted-foreground"
+const LABEL = "text-sm text-text-1 font-semibold shrink-0"
+const VALUE = "text-sm text-text-1"
+const VALUE_MUTED = "text-xs font-medium"
 
 function fmt(val: string | null | undefined) {
   if (!val) return "—"
@@ -40,7 +43,7 @@ function FieldRow({
   muted?: boolean
 }) {
   return (
-    <div className="border-border flex items-start justify-between gap-4 border-b py-2.5 last:border-0">
+    <div className="border-border grid grid-cols-[260px_200px] py-2.5 last:border-0">
       <span className={LABEL}>{label}</span>
       <span className={muted ? VALUE_MUTED : VALUE}>{value ?? "—"}</span>
     </div>
@@ -49,9 +52,9 @@ function FieldRow({
 
 function TariffRow({ t }: { t: TariffRespModel }) {
   const time =
-    t.time_start && t.time_end ? `${t.time_start} - ${t.time_end}` : "—"
+    t.start_time && t.end_time ? `${t.start_time} - ${t.end_time}` : "—"
   return (
-    <div className="border-border grid grid-cols-[160px_160px_1fr] items-center gap-3 border-t bg-white px-4 py-2.5 text-xs">
+    <div className="border-border grid grid-cols-[100px_100px_1fr] items-center bg-white px-4 py-2.5 text-xs">
       <span className="text-text-1 font-medium">
         Tariff {t.period_number}/{t.slot}
       </span>
@@ -74,18 +77,24 @@ export default function ViewContractSheet({
   onClose,
   contractUid,
   clientName,
+  clientEmail,
   siteName,
 }: Props) {
   const { data: contract, isLoading, isError } = useGetContract(contractUid)
   const [editOpen, setEditOpen] = useState(false)
 
   const d: ContractDetailsRespModel | null = contract?.details ?? null
-  const isPPA = contract?.contract_type === EnumContractType.PPA
-  const isOffGrid = contract?.system_mode === EnumContractSystemMode.OFF_GRID
-  const isLease = contract?.contract_type === EnumContractType.LEASE
+  const combo = contract
+    ? getCombo(contract.contract_type, contract.system_mode)
+    : null
+  const show = (field: keyof typeof VIS) => (combo ? VIS[field][combo] : false)
 
-  const contractTypeLabel = isPPA ? "PPA" : "Lease"
-  const systemModeLabel = isOffGrid ? "Off Grid" : "On Grid"
+  const contractTypeLabel =
+    contract?.contract_type === EnumContractType.PPA ? "PPA" : "Lease"
+  const systemModeLabel =
+    contract?.system_mode === EnumContractSystemMode.OFF_GRID
+      ? "Off Grid"
+      : "On Grid"
 
   return (
     <>
@@ -149,66 +158,15 @@ export default function ViewContractSheet({
             {contract && (
               <>
                 {/* ── Summary bar ── */}
-                <div className="border-border grid grid-cols-[440px_290px_1fr] border-b px-8 py-5">
-                  <div className="space-y-2">
-                    <div className="grid grid-cols-[140px_1fr] items-baseline gap-1">
-                      <span className="text-text-1 text-sm font-semibold">
-                        Customer:
-                      </span>
-                      <span className="text-text-1 text-sm">{clientName}</span>
-                    </div>
-                    <div className="grid grid-cols-[140px_1fr] items-baseline gap-1">
-                      <span className="text-text-1 text-sm font-semibold">
-                        Site:
-                      </span>
-                      <span className="text-text-1 text-sm">
-                        {siteName ?? "—"}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-[140px_1fr] items-baseline gap-1">
-                      <span className="text-text-1 text-sm font-semibold">
-                        Contract reference
-                      </span>
-                      <span className="text-text-1 text-sm">
-                        {contract.contract_ref}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="grid grid-cols-[110px_1fr] items-baseline gap-1">
-                      <span className="text-text-1 text-sm font-semibold">
-                        Contract Type
-                      </span>
-                      <span className="text-text-1 text-sm">
-                        {contractTypeLabel}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-[110px_1fr] items-baseline gap-1">
-                      <span className="text-text-1 text-sm font-semibold">
-                        System Mode
-                      </span>
-                      <span className="text-text-1 text-sm">
-                        {systemModeLabel}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-[110px_1fr] items-baseline gap-1">
-                      <span className="text-text-1 text-sm font-semibold">
-                        Currency
-                      </span>
-                      <span className="text-text-1 text-sm">
-                        {contract.currency}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="grid grid-cols-[170px_1fr] items-baseline gap-1">
-                      <span className="text-text-1 text-sm font-semibold">
-                        Client email (for invoice)
-                      </span>
-                      <span className="text-text-1 text-sm">—</span>
-                    </div>
-                  </div>
-                </div>
+                <ContractSummaryBar
+                  clientName={clientName}
+                  siteName={siteName}
+                  contractRef={contract.contract_ref}
+                  contractTypeLabel={contractTypeLabel}
+                  systemModeLabel={systemModeLabel}
+                  currency={contract.currency}
+                  clientEmail={clientEmail}
+                />
 
                 {/* ── No details ── */}
                 {!d && (
@@ -232,127 +190,165 @@ export default function ViewContractSheet({
                   <div className="space-y-6 px-8 py-6">
                     {/* 3-column flat field grid */}
                     <div className="border-border grid grid-cols-3 gap-x-10 border-b pb-6">
+                      {/* Col 1 */}
                       <div>
-                        <FieldRow
-                          label="Term years"
-                          value={d.term_years ? `${d.term_years} years` : "—"}
-                        />
-                        {isPPA && (
+                        {show("term_years") && (
+                          <FieldRow
+                            label="Term years"
+                            value={d.term_years ? `${d.term_years} years` : "—"}
+                          />
+                        )}
+                        {show("tariff_periods") && (
                           <FieldRow
                             label="Tariff Periods"
                             value={d.tariff_periods ?? "—"}
                           />
                         )}
-                        <FieldRow
-                          label="Implementation Period"
-                          value={d.implementation_period ?? "—"}
-                        />
+                        {show("implementation_period") && (
+                          <FieldRow
+                            label="Implementation Period"
+                            value={d.implementation_period ?? "—"}
+                          />
+                        )}
                       </div>
+
+                      {/* Col 2 */}
                       <div>
-                        <FieldRow
-                          label="Contract Signing Date"
-                          value={fmt(d.signed_at)}
-                        />
-                        <FieldRow
-                          label="Commissioning Date"
-                          value={fmt(d.commissioned_at)}
-                        />
-                        <FieldRow
-                          label="Implementation Period"
-                          value={d.implementation_period ?? "—"}
-                        />
+                        {show("signing_date") && (
+                          <FieldRow
+                            label="Contract Signing Date"
+                            value={fmt(d.signed_at)}
+                          />
+                        )}
+                        {show("commissioning_date") && (
+                          <FieldRow
+                            label="Commissioning Date"
+                            value={fmt(d.commissioned_at)}
+                          />
+                        )}
+                        {show("contract_end") && (
+                          <FieldRow
+                            label="Contract End"
+                            value={fmt(d.end_at)}
+                          />
+                        )}
                       </div>
+
+                      {/* Col 3 */}
                       <div>
-                        <FieldRow
-                          label="Billing Frequency"
-                          value={d.billing_frequency ?? "—"}
-                        />
-                        {!isLease && (
+                        {show("billing_frequency") && (
+                          <FieldRow
+                            label="Billing Frequency"
+                            value={d.billing_frequency ?? "—"}
+                          />
+                        )}
+                        {show("grid_meter_reading") && (
                           <FieldRow
                             label="Grid Meter reading at Commissioning"
                             value={d.grid_meter_reading_at_commissioning ?? "—"}
                             muted={!d.grid_meter_reading_at_commissioning}
                           />
                         )}
-                        {!isLease && (
+                        {show("guaranteed_production") && (
                           <FieldRow
                             label="Guaranteed Production kWh/kWp"
                             value={d.guaranteed_production_kwh_per_kwp ?? "—"}
                             muted={!d.guaranteed_production_kwh_per_kwp}
                           />
                         )}
-                        {isLease && (
-                          <>
-                            <FieldRow
-                              label="Equipment Lease Amount"
-                              value={d.equipment_lease_amount ?? "—"}
-                            />
-                            <FieldRow
-                              label="Maintenance Amount"
-                              value={d.maintenance_amount ?? "—"}
-                            />
-                            <FieldRow label="Total" value={d.total ?? "—"} />
-                          </>
+                        {show("equipment_lease") && (
+                          <FieldRow
+                            label="Equipment Lease Amount"
+                            value={d.equipment_lease_amount ?? "—"}
+                          />
+                        )}
+                        {show("maintenance") && (
+                          <FieldRow
+                            label="Maintenance Amount"
+                            value={d.maintenance_amount ?? "—"}
+                          />
+                        )}
+                        {show("total") && (
+                          <FieldRow label="Total" value={d.total ?? "—"} />
                         )}
                       </div>
                     </div>
 
                     {/* Tariffs table */}
-                    {isPPA && (
-                      <div className="border-border overflow-hidden rounded-lg border">
-                        <div className="bg-blue/40 grid grid-cols-[160px_160px_1fr] px-4 py-2.5 text-xs font-semibold text-[#2C6B6B]">
-                          <span>Tariffs</span>
-                          <span>Rate/%</span>
-                          <span>Time</span>
-                        </div>
-                        {d.tariffs && d.tariffs.length > 0 ? (
-                          d.tariffs.map((t) => <TariffRow key={t.uid} t={t} />)
-                        ) : (
-                          <div className="text-muted-foreground bg-white px-4 py-4 text-xs">
-                            No tariff rows available.
+                    {show("tariffs_table") &&
+                      (() => {
+                        let slots: TariffRespModel[] = []
+                        try {
+                          slots = d.tariff_slots
+                            ? JSON.parse(d.tariff_slots)
+                            : []
+                        } catch {
+                          slots = []
+                        }
+                        return (
+                          <div>
+                            <div className="bg-blue/40 text-text-1 grid grid-cols-[100px_100px_1fr] rounded-md px-4 py-2.5 text-sm font-semibold">
+                              <span>Tariffs</span>
+                              <span>Rate/%</span>
+                              <span>Time</span>
+                            </div>
+                            {slots.length > 0 ? (
+                              slots.map((t, i) => <TariffRow key={i} t={t} />)
+                            ) : (
+                              <div className="text-text-1 bg-white px-4 py-4 text-sm">
+                                No tariff rows available.
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    )}
+                        )
+                      })()}
 
                     {/* Bottom fields */}
-                    {isPPA && (
+                    {(show("monthly_baseline_consumption") ||
+                      show("minimum_consumption_monthly") ||
+                      show("minimum_spend") ||
+                      show("estimated_utility")) && (
                       <div className="border-border grid grid-cols-2 gap-x-10 border-t pt-6">
                         <div>
-                          <FieldRow
-                            label="Monthly Baseline Consumption (kWh)"
-                            value={d.monthly_baseline_consumption_kwh ?? "—"}
-                          />
-                          <FieldRow
-                            label="Minimum Consumption Monthly"
-                            value={d.minimum_consumption_monthly_kwh ?? "—"}
-                          />
-                          <FieldRow
-                            label="Minimum Spend"
-                            value={
-                              d.minimum_spend != null ? (
-                                <span className="text-primary text-xs font-medium">
-                                  {d.minimum_spend}
-                                </span>
-                              ) : (
-                                "—"
-                              )
-                            }
-                          />
-                          <FieldRow
-                            label="Estimated Utility"
-                            value={d.estimated_utility ?? "—"}
-                          />
+                          {show("monthly_baseline_consumption") && (
+                            <FieldRow
+                              label="Monthly Baseline Consumption (kWh)"
+                              value={d.monthly_baseline_consumption_kwh ?? "—"}
+                            />
+                          )}
+                          {show("minimum_consumption_monthly") && (
+                            <FieldRow
+                              label="Minimum Consumption Monthly"
+                              value={d.minimum_consumption_monthly_kwh ?? "—"}
+                            />
+                          )}
+                          {show("minimum_spend") && (
+                            <FieldRow
+                              label="Minimum Spend"
+                              value={
+                                d.minimum_spend != null ? (
+                                  <span className="text-primary text-xs font-medium">
+                                    {d.minimum_spend}
+                                  </span>
+                                ) : (
+                                  "—"
+                                )
+                              }
+                            />
+                          )}
+                          {show("estimated_utility") && (
+                            <FieldRow
+                              label="Estimated Utility"
+                              value={d.estimated_utility ?? "—"}
+                            />
+                          )}
                         </div>
-                        <div>
-                          <FieldRow label="Site Meter 1 - Day" value="—" />
-                          <FieldRow label="Site Meter 1 - Night" value="—" />
-                          <FieldRow label="Generator Meter 1 - Day" value="—" />
-                          <FieldRow
-                            label="Generator Meter 1 - Night"
-                            value="—"
-                          />
-                        </div>
+                        {/* <div>
+                          <FieldRow label="Site Meter 1 - Day"        value="—" />
+                          <FieldRow label="Site Meter 1 - Night"      value="—" />
+                          <FieldRow label="Generator Meter 1 - Day"   value="—" />
+                          <FieldRow label="Generator Meter 1 - Night" value="—" />
+                        </div> */}
                       </div>
                     )}
 
