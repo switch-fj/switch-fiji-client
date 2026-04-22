@@ -19,3 +19,12 @@ export const SITE = {
   LIST: (clientUid: string) => `/api/v1/admin/sites/${clientUid}`,
   ADD: "/api/v1/admin/site/add",
 } as const
+
+export const CONTRACT = {
+  CREATE: "/api/v1/contract/create",
+  GET: (contractUid: string) => `/api/v1/contract/${contractUid}`,
+  CREATE_DETAILS: (contractUid: string) =>
+    `/api/v1/contract/details/${contractUid}`,
+  UPDATE_DETAILS: (contractDetailsUid: string) =>
+    `/api/v1/contract/details/${contractDetailsUid}`,
+} as const

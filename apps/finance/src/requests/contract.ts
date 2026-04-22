@@ -1,4 +1,5 @@
 import api from "@/lib/axios"
+import { CONTRACT } from "@/constants/api"
 import type {
   CreateContractInput,
   ContractDetailsPayload,
@@ -10,7 +11,7 @@ export const createContract = async (
   payload: CreateContractInput
 ): Promise<ServerResponse<string>> => {
   const { data } = await api.post<ServerResponse<string>>(
-    "/api/v1/contract/create",
+    CONTRACT.CREATE,
     payload
   )
   return data
@@ -20,7 +21,7 @@ export const getContract = async (
   contractUid: string
 ): Promise<ServerResponse<ContractDetailedRespModel>> => {
   const { data } = await api.get<ServerResponse<ContractDetailedRespModel>>(
-    `/api/v1/contract/${contractUid}`
+    CONTRACT.GET(contractUid)
   )
   return data
 }
@@ -30,7 +31,7 @@ export const createContractDetails = async (
   payload: ContractDetailsPayload
 ): Promise<ServerResponse<string>> => {
   const { data } = await api.post<ServerResponse<string>>(
-    `/api/v1/contract/details/${contractUid}`,
+    CONTRACT.CREATE_DETAILS(contractUid),
     payload
   )
   return data
@@ -41,7 +42,7 @@ export const updateContractDetails = async (
   payload: ContractDetailsPayload
 ): Promise<ServerResponse<string>> => {
   const { data } = await api.put<ServerResponse<string>>(
-    `/api/v1/contract/details/${contractDetailsUid}`,
+    CONTRACT.UPDATE_DETAILS(contractDetailsUid),
     payload
   )
   return data
