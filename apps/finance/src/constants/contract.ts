@@ -61,7 +61,7 @@ export const VIS = {
   system_size_kwp: {
     ppa_off_grid: false,
     ppa_on_grid: true,
-    lease_on_grid: true,
+    lease_on_grid: false,
   },
   guaranteed_production: {
     ppa_off_grid: false,

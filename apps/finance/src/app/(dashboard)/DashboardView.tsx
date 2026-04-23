@@ -1,6 +1,7 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { Suspense, useMemo, useState } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
 import { UserPlus } from "lucide-react"
 import DashboardHeaders from "./components/DashboardHeaders"
 import ClientAccordion from "./components/ClientAccordion"
@@ -8,9 +9,14 @@ import ClientSitesPanel from "./components/ClientSitesPanel"
 import AddClientModal from "./components/AddClientModal"
 import { useClients } from "@/hooks/useClient"
 
-export default function DashboardView() {
+function DashboardViewInner() {
   const [addClientOpen, setAddClientOpen] = useState(false)
-  const [activeClientId, setActiveClientId] = useState("")
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
+  const [activeClientId, setActiveClientId] = useState(
+    () => searchParams.get("clientUid") ?? ""
+  )
 
   const { data, isLoading, isError } = useClients()
   const clients = data?.data?.items ?? []
@@ -19,6 +25,11 @@ export default function DashboardView() {
     () => clients.find((c) => c.uid === activeClientId),
     [clients, activeClientId]
   )
+
+  const handleActiveChange = (id: string) => {
+    setActiveClientId(id)
+    router.replace(id ? "?clientUid=" + encodeURIComponent(id) : "?")
+  }
 
   return (
     <div className="border-border/60 flex flex-col gap-6 rounded-lg border bg-white p-6">
@@ -56,7 +67,7 @@ export default function DashboardView() {
             <ClientAccordion
               clients={clients}
               activeClientId={activeClientId}
-              onActiveChange={setActiveClientId}
+              onActiveChange={handleActiveChange}
             />
           )}
         </section>
@@ -81,5 +92,13 @@ export default function DashboardView() {
         <UserPlus className="h-6 w-6" />
       </button>
     </div>
+  )
+}
+
+export default function DashboardView() {
+  return (
+    <Suspense fallback={null}>
+      <DashboardViewInner />
+    </Suspense>
   )
 }
