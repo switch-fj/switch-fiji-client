@@ -1,34 +1,37 @@
-"use client";
-import { createContext, useContext } from "react";
-import AppConfigStore from "./AppConfig";
-import AuthStore from "./Auth";
-import { configure } from "mobx";
+"use client"
+import { createContext, useContext } from "react"
+import AppConfigStore from "./AppConfig"
+import AuthStore from "./Auth"
+import SettingsStore from "./Settings"
+import { configure } from "mobx"
 
 configure({
   enforceActions: "observed",
   computedRequiresReaction: true,
-});
+})
 
 interface StoreProviderProps {
-  children: React.ReactNode;
+  children: React.ReactNode
 }
 
 export class RootStore {
-  AppConfigStore: AppConfigStore;
-  AuthStore: AuthStore;
+  AppConfigStore: AppConfigStore
+  AuthStore: AuthStore
+  SettingsStore: SettingsStore
 
   constructor() {
-    this.AppConfigStore = new AppConfigStore(this);
-    this.AuthStore = new AuthStore(this);
+    this.AppConfigStore = new AppConfigStore(this)
+    this.AuthStore = new AuthStore(this)
+    this.SettingsStore = new SettingsStore(this)
   }
 }
 
-export const Stores = new RootStore();
+export const Stores = new RootStore()
 
-const StoreContext = createContext<RootStore>(Stores);
+const StoreContext = createContext<RootStore>(Stores)
 
 export const StoreProvider = ({ children }: StoreProviderProps) => (
   <StoreContext.Provider value={Stores}>{children}</StoreContext.Provider>
-);
+)
 
-export const useStore = () => useContext(StoreContext);
+export const useStore = () => useContext(StoreContext)

@@ -81,6 +81,7 @@ function ClientSitesPanelInner({ client }: ClientSitesPanelProps) {
       ? {
           siteUid: searchParams.get("siteUid")!,
           siteName: searchParams.get("siteName"),
+          contractUid: searchParams.get("contractUid") || null,
         }
       : null
 
@@ -200,6 +201,7 @@ function ClientSitesPanelInner({ client }: ClientSitesPanelProps) {
                           sheet: "invoice",
                           siteUid: site.uid,
                           siteName: site.site_name ?? "",
+                          contractUid: site.contract?.uid ?? "",
                         })
                       }
                     >
@@ -296,6 +298,7 @@ function ClientSitesPanelInner({ client }: ClientSitesPanelProps) {
           clientName={clientName}
           siteName={invoiceSheet.siteName}
           billingEmail={clientEmail}
+          contractUid={invoiceSheet.contractUid}
         />
       )}
 

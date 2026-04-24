@@ -1,19 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Sheet, SheetContent, Button } from "@workspace/ui"
-import {
-  ChevronLeft,
-  ChevronDown,
-  Search,
-  Download,
-  ChevronDown as DropdownIcon,
-} from "lucide-react"
-import type {
-  InvoiceModel,
-  InvoiceHistoryItem,
-  InvoiceStatus,
-} from "@/types/invoice"
+import { ChevronLeft, ChevronDown, Search, Download } from "lucide-react"
+import { useGetInvoice, useGetInvoiceHistory } from "@/hooks/useInvoice"
+import type { InvoiceRespModel, InvoiceHistoryRespModel } from "@/types/invoice"
 
 type Props = {
   open: boolean
@@ -21,18 +12,50 @@ type Props = {
   clientName: string
   siteName: string | null
   billingEmail: string
-  invoice?: InvoiceModel | null
-  history?: InvoiceHistoryItem[]
-  onSelectInvoice?: (uid: string) => void
+  contractUid: string | null
 }
 
-const BILLING_PERIODS = ["This week", "This month", "Last month", "Custom"]
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-const STATUS_DOT: Record<InvoiceStatus, string> = {
-  paid: "bg-green-500",
-  pending: "bg-blue-400",
-  overdue: "bg-red-500",
+function fmt(iso: string) {
+  return new Date(iso).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  })
 }
+
+function fmtMonthYear(iso: string) {
+  return new Date(iso).toLocaleDateString("en-GB", {
+    month: "short",
+    year: "numeric",
+  })
+}
+
+function fmtDateTime(iso: string) {
+  return new Date(iso).toLocaleString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  })
+}
+
+// Deduplicate send records by invoice_uid, keeping the most-recent per invoice
+function uniqueInvoices(
+  items: InvoiceHistoryRespModel[]
+): InvoiceHistoryRespModel[] {
+  const seen = new Set<string>()
+  return items.filter((item) => {
+    if (seen.has(item.invoice_uid)) return false
+    seen.add(item.invoice_uid)
+    return true
+  })
+}
+
+// ── Sub-components ────────────────────────────────────────────────────────────
 
 function SwitchLogo() {
   return (
@@ -45,18 +68,23 @@ function SwitchLogo() {
   )
 }
 
-function InvoiceEmptyState() {
+function InvoiceEmptyState({ message }: { message?: string }) {
   return (
     <div className="flex min-h-[260px] flex-col items-center justify-center gap-2">
       <p className="text-text-1 text-base font-semibold">No data yet</p>
       <p className="text-muted-foreground text-sm">
-        Click generate to show generated invoice
+        {message ?? "Click generate to show generated invoice"}
       </p>
     </div>
   )
 }
 
-function LineItemsTable({ invoice }: { invoice: InvoiceModel }) {
+function LineItemsTable({ invoice }: { invoice: InvoiceRespModel }) {
+  const subtotal = parseFloat(invoice.subtotal)
+  const vatRate = parseFloat(invoice.vat_rate)
+  const vatAmount = subtotal * vatRate
+  const total = subtotal + vatAmount
+
   return (
     <div className="overflow-hidden rounded-md border">
       <table className="w-full text-sm">
@@ -70,11 +98,22 @@ function LineItemsTable({ invoice }: { invoice: InvoiceModel }) {
         </thead>
         <tbody>
           {invoice.line_items.map((row, i) => (
-            <tr key={i} className={i % 2 === 1 ? "bg-neutral-50" : "bg-white"}>
-              <td className="px-4 py-3">{row.item}</td>
-              <td className="px-4 py-3 text-right">{row.energy_kwh}</td>
-              <td className="px-4 py-3 text-right">${row.tariff.toFixed(2)}</td>
-              <td className="px-4 py-3 text-right">${row.amount.toFixed(2)}</td>
+            <tr
+              key={row.uid}
+              className={i % 2 === 1 ? "bg-neutral-50" : "bg-white"}
+            >
+              <td className="px-4 py-3">{row.description}</td>
+              <td className="px-4 py-3 text-right">
+                {row.energy_kwh != null ? parseFloat(row.energy_kwh) : "—"}
+              </td>
+              <td className="px-4 py-3 text-right">
+                {row.tariff_rate != null
+                  ? `$${parseFloat(row.tariff_rate).toFixed(2)}`
+                  : "—"}
+              </td>
+              <td className="px-4 py-3 text-right">
+                ${parseFloat(row.amount).toFixed(2)}
+              </td>
             </tr>
           ))}
         </tbody>
@@ -84,15 +123,15 @@ function LineItemsTable({ invoice }: { invoice: InvoiceModel }) {
         <div className="ml-auto max-w-[260px] space-y-1.5 text-sm">
           <div className="flex justify-between">
             <span className="text-muted-foreground">Sub Total</span>
-            <span>${invoice.sub_total.toFixed(2)}</span>
+            <span>${subtotal.toFixed(2)}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">VAT</span>
-            <span>${invoice.vat.toFixed(5)}</span>
+            <span>${vatAmount.toFixed(5)}</span>
           </div>
           <div className="flex justify-between border-t pt-1.5 font-semibold">
             <span>Total</span>
-            <span>${invoice.total.toFixed(5)}</span>
+            <span>${total.toFixed(5)}</span>
           </div>
         </div>
       </div>
@@ -100,7 +139,7 @@ function LineItemsTable({ invoice }: { invoice: InvoiceModel }) {
   )
 }
 
-function MeterDataTable({ invoice }: { invoice: InvoiceModel }) {
+function MeterDataTable({ invoice }: { invoice: InvoiceRespModel }) {
   return (
     <div className="overflow-hidden rounded-md border">
       <table className="w-full text-sm">
@@ -121,19 +160,29 @@ function MeterDataTable({ invoice }: { invoice: InvoiceModel }) {
           </tr>
         </thead>
         <tbody>
-          {invoice.meter_data.map((row, i) => (
-            <tr key={i} className={i % 2 === 1 ? "bg-neutral-50" : "bg-white"}>
-              <td className="px-4 py-3">{row.name}</td>
-              <td className="px-4 py-3 text-right">{row.period_start}</td>
-              <td className="px-4 py-3 text-right">{row.period_end}</td>
-              <td className="px-4 py-3 text-right">{row.usage}</td>
-            </tr>
-          ))}
+          {invoice.meter_data.map((row, i) => {
+            const start = parseFloat(row.period_start_reading)
+            const end = parseFloat(row.period_end_reading)
+            const usage = end - start
+            return (
+              <tr
+                key={row.uid}
+                className={i % 2 === 1 ? "bg-neutral-50" : "bg-white"}
+              >
+                <td className="px-4 py-3">{row.label}</td>
+                <td className="px-4 py-3 text-right">{start}</td>
+                <td className="px-4 py-3 text-right">{end}</td>
+                <td className="px-4 py-3 text-right">{usage}</td>
+              </tr>
+            )
+          })}
         </tbody>
       </table>
     </div>
   )
 }
+
+// ── Main component ────────────────────────────────────────────────────────────
 
 export default function ViewInvoiceSheet({
   open,
@@ -141,16 +190,33 @@ export default function ViewInvoiceSheet({
   clientName,
   siteName,
   billingEmail,
-  invoice,
-  history = [],
-  onSelectInvoice,
+  contractUid,
 }: Props) {
-  const [billingPeriod, setBillingPeriod] = useState("This week")
-  const [periodDropdownOpen, setPeriodDropdownOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const [selectedInvoiceUid, setSelectedInvoiceUid] = useState<string | null>(
+    null
+  )
 
-  const hasInvoice = !!invoice
-  const hasHistory = history.length > 0
+  const { data: historyPage, isLoading: historyLoading } =
+    useGetInvoiceHistory(contractUid)
+
+  const { data: invoice, isLoading: invoiceLoading } =
+    useGetInvoice(selectedInvoiceUid)
+
+  // Auto-select the first invoice from history on load
+  const dedupedHistory = historyPage ? uniqueInvoices(historyPage.items) : []
+
+  useEffect(() => {
+    if (dedupedHistory.length > 0 && !selectedInvoiceUid) {
+      setSelectedInvoiceUid(dedupedHistory[0].invoice_uid)
+    }
+  }, [dedupedHistory, selectedInvoiceUid])
+
+  // Most recent send record for the currently loaded invoice
+  const latestSend = invoice?.history[0] ?? null
+
+  const hasInvoice = !!invoice && !invoiceLoading
+  const hasHistory = dedupedHistory.length > 0
 
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
@@ -180,32 +246,6 @@ export default function ViewInvoiceSheet({
           <div className="space-y-4">
             {/* Billing period controls */}
             <div className="flex items-center gap-3">
-              <div className="relative">
-                <button
-                  onClick={() => setPeriodDropdownOpen((v) => !v)}
-                  className="border-border flex items-center gap-2 rounded border bg-white px-3 py-2 text-sm"
-                >
-                  {billingPeriod}
-                  <ChevronDown className="h-4 w-4" />
-                </button>
-                {periodDropdownOpen && (
-                  <div className="border-border absolute top-full left-0 z-10 mt-1 w-40 overflow-hidden rounded border bg-white shadow-md">
-                    {BILLING_PERIODS.map((p) => (
-                      <button
-                        key={p}
-                        onClick={() => {
-                          setBillingPeriod(p)
-                          setPeriodDropdownOpen(false)
-                        }}
-                        className="w-full px-3 py-2 text-left text-sm hover:bg-neutral-50"
-                      >
-                        {p}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
               <Button variant="primary" size="sm" className="rounded px-5 py-2">
                 View Period
               </Button>
@@ -236,7 +276,8 @@ export default function ViewInvoiceSheet({
                     </span>
                     {hasInvoice ? (
                       <span>
-                        {invoice.date_start} – {invoice.date_end}
+                        {fmt(invoice.period_start_at)} –{" "}
+                        {fmt(invoice.period_end_at)}
                       </span>
                     ) : (
                       <span>--</span>
@@ -255,7 +296,7 @@ export default function ViewInvoiceSheet({
                     </span>
                     {hasInvoice ? (
                       <span className="text-blue font-medium">
-                        {invoice.invoice_number}
+                        {invoice.invoice_ref}
                       </span>
                     ) : (
                       <span className="text-muted-foreground">--</span>
@@ -266,8 +307,14 @@ export default function ViewInvoiceSheet({
 
               {/* Card body */}
               <div className="px-6 py-5">
-                {!hasInvoice ? (
-                  <InvoiceEmptyState />
+                {invoiceLoading ? (
+                  <InvoiceEmptyState message="Loading invoice…" />
+                ) : !hasInvoice && !contractUid ? (
+                  <InvoiceEmptyState message="No contract linked to this site." />
+                ) : !hasInvoice && !hasHistory ? (
+                  <InvoiceEmptyState message="No invoices generated yet." />
+                ) : !hasInvoice ? (
+                  <InvoiceEmptyState message="Select an invoice from the history panel." />
                 ) : (
                   <div className="space-y-5">
                     <LineItemsTable invoice={invoice} />
@@ -290,8 +337,11 @@ export default function ViewInvoiceSheet({
                 </button>
               </div>
 
-              {/* History list or empty state */}
-              {!hasHistory ? (
+              {historyLoading ? (
+                <div className="text-muted-foreground px-4 py-8 text-center text-sm">
+                  Loading…
+                </div>
+              ) : !hasHistory ? (
                 <div className="flex flex-col items-center justify-center gap-1.5 px-6 py-12 text-center">
                   <p className="font-semibold">No History</p>
                   <p className="text-muted-foreground text-sm">
@@ -300,26 +350,30 @@ export default function ViewInvoiceSheet({
                 </div>
               ) : (
                 <div className="divide-y">
-                  {history.map((item) => (
+                  {dedupedHistory.map((item) => (
                     <button
                       key={item.uid}
-                      onClick={() => onSelectInvoice?.(item.uid)}
+                      onClick={() => setSelectedInvoiceUid(item.invoice_uid)}
                       className={[
                         "flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-neutral-50",
-                        invoice?.uid === item.uid ? "bg-neutral-50" : "",
+                        selectedInvoiceUid === item.invoice_uid
+                          ? "bg-neutral-50"
+                          : "",
                       ].join(" ")}
                     >
                       <span className="text-sm font-medium">
-                        {item.invoice_number}
+                        {invoice?.uid === item.invoice_uid
+                          ? invoice.invoice_ref
+                          : fmtMonthYear(item.sent_at)}
                       </span>
                       <div className="flex items-center gap-2">
                         <span className="text-muted-foreground text-xs">
-                          {item.period_label}
+                          {fmtMonthYear(item.sent_at)}
                         </span>
                         <span
                           className={[
                             "h-2.5 w-2.5 rounded-full",
-                            STATUS_DOT[item.status],
+                            item.was_successful ? "bg-green-500" : "bg-red-500",
                           ].join(" ")}
                         />
                       </div>
@@ -331,18 +385,18 @@ export default function ViewInvoiceSheet({
 
             {/* Bottom actions */}
             <div className="border-border mt-4 rounded-xl border bg-white px-4 py-4">
-              {invoice?.sent_to && invoice?.sent_at ? (
+              {latestSend ? (
                 <div className="mb-3 space-y-0.5 text-sm">
                   <p className="text-muted-foreground">
                     Sent to{" "}
                     <span className="text-text-1 font-semibold">
-                      {invoice.sent_to}
+                      {latestSend.sent_to}
                     </span>
                   </p>
                   <p className="text-muted-foreground">
                     Sent on{" "}
                     <span className="text-text-1 font-semibold">
-                      {invoice.sent_at}
+                      {fmtDateTime(latestSend.sent_at)}
                     </span>
                   </p>
                 </div>

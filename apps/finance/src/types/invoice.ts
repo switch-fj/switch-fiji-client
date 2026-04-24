@@ -1,37 +1,52 @@
-export type InvoiceLineItem = {
-  item: string
-  energy_kwh: number
-  tariff: number
-  amount: number
-}
-
-export type MeterDataRow = {
-  name: string
-  period_start: number
-  period_end: number
-  usage: number
-}
-
-export type InvoiceStatus = "paid" | "pending" | "overdue"
-
-export type InvoiceHistoryItem = {
+export type InvoiceHistoryRespModel = {
   uid: string
-  invoice_number: string
-  period_label: string
-  status: InvoiceStatus
+  invoice_uid: string
+  sent_to: string
+  sent_at: string
+  was_successful: boolean
+  failure_reason: string | null
 }
 
-export type InvoiceModel = {
+export type InvoiceLineItemRespModel = {
   uid: string
-  invoice_number: string
-  date_start: string
-  date_end: string
-  line_items: InvoiceLineItem[]
-  sub_total: number
-  vat: number
+  description: string
+  energy_kwh: string | null
+  tariff_rate: string | null
+  tariff_period: number | null
+  tariff_slot: string | null
+  amount: string
+}
+
+export type InvoiceMeterDataRespModel = {
+  uid: string
+  label: string
+  period_start_reading: string
+  period_end_reading: string
+  vat_amount: string
+  total: string
+}
+
+export type InvoiceRespModel = {
+  uid: string
+  invoice_ref: string
+  period_start_at: string
+  period_end_at: string
+  subtotal: string
+  vat_rate: string
+  energy_mix: string | null
+  line_items: InvoiceLineItemRespModel[]
+  meter_data: InvoiceMeterDataRespModel[]
+  history: InvoiceHistoryRespModel[]
+}
+
+export type OffsetPagination = {
   total: number
-  meter_data: MeterDataRow[]
-  billing_email: string
-  sent_to: string | null
-  sent_at: string | null
+  current_page: number
+  limit: number
+  total_pages: number
+}
+
+export type InvoiceHistoryPage = {
+  items: InvoiceHistoryRespModel[]
+  pagination: OffsetPagination
 }

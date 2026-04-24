@@ -28,3 +28,13 @@ export const CONTRACT = {
   UPDATE_DETAILS: (contractDetailsUid: string) =>
     `/api/v1/contract/details/${contractDetailsUid}`,
 } as const
+
+export const INVOICE = {
+  GET: (invoiceUid: string) => `/api/v1/invoice/${invoiceUid}`,
+  HISTORY: (contractUid: string) => `/api/v1/invoice/history/${contractUid}`,
+} as const
+
+export const SETTINGS = {
+  GET: "/api/v1/admin/contracts-settings",
+  UPDATE: "/api/v1/admin/contracts-settings",
+} as const

@@ -52,7 +52,11 @@ export const VIS = {
     ppa_on_grid: true,
     lease_on_grid: true,
   },
-  client_email: { ppa_off_grid: true, ppa_on_grid: true, lease_on_grid: true },
+  client_email: {
+    ppa_off_grid: false,
+    ppa_on_grid: false,
+    lease_on_grid: false,
+  },
   grid_meter_reading: {
     ppa_off_grid: false,
     ppa_on_grid: true,

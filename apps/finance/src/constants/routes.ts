@@ -3,4 +3,5 @@ export const DASHBOARD_LINKS = [
   { label: "Clients", href: "/clients" },
   { label: "Payments", href: "/payments" },
   { label: "Profile", href: "/profile" },
+  { label: "Settings", href: "/settings" },
 ]
