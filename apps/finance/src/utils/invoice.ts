@@ -1,28 +1,38 @@
 import type { InvoiceHistoryRespModel } from "@/types/invoice"
 
-export function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString("en-GB", {
+type DateFmt = "dmy" | "mdy"
+type TimeFmt = "12" | "24"
+
+export function fmtDate(iso: string, dateFmt: DateFmt = "dmy") {
+  const locale = dateFmt === "mdy" ? "en-US" : "en-GB"
+  return new Date(iso).toLocaleDateString(locale, {
     day: "numeric",
     month: "short",
     year: "numeric",
   })
 }
 
-export function fmtMonthYear(iso: string) {
-  return new Date(iso).toLocaleDateString("en-GB", {
+export function fmtMonthYear(iso: string, dateFmt: DateFmt = "dmy") {
+  const locale = dateFmt === "mdy" ? "en-US" : "en-GB"
+  return new Date(iso).toLocaleDateString(locale, {
     month: "short",
     year: "numeric",
   })
 }
 
-export function fmtDateTime(iso: string) {
-  return new Date(iso).toLocaleString("en-GB", {
+export function fmtDateTime(
+  iso: string,
+  dateFmt: DateFmt = "dmy",
+  timeFmt: TimeFmt = "24"
+) {
+  const locale = dateFmt === "mdy" ? "en-US" : "en-GB"
+  return new Date(iso).toLocaleString(locale, {
     day: "numeric",
     month: "short",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-    hour12: false,
+    hour12: timeFmt === "12",
   })
 }
 

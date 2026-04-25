@@ -13,7 +13,7 @@ export default function InvoiceLineItemsTable({ invoice }: Props) {
     <div className="overflow-hidden rounded-md border-none">
       <table className="w-full text-sm">
         <thead>
-          <tr className="bg-blue/50 text-text-1">
+          <tr className="bg-blue/40 text-text-1">
             <th className="px-4 py-3 text-left font-semibold">Item</th>
             <th className="px-4 py-3 text-left font-semibold">Energy (kWh)</th>
             <th className="px-4 py-3 text-left font-semibold">Tariff</th>

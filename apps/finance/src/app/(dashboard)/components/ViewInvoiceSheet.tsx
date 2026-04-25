@@ -15,12 +15,8 @@ import {
   useGetInvoiceHistory,
   useDownloadInvoicePdf,
 } from "@/hooks/useInvoice"
-import {
-  fmtDate,
-  fmtMonthYear,
-  fmtDateTime,
-  uniqueByInvoiceUid,
-} from "@/utils/invoice"
+import { uniqueByInvoiceUid } from "@/utils/invoice"
+import { useInvoiceFormatters } from "@/hooks/useInvoiceFormatters"
 import InvoiceLineItemsTable from "./InvoiceLineItemsTable"
 import InvoiceMeterDataTable from "./InvoiceMeterDataTable"
 
@@ -41,6 +37,7 @@ export default function ViewInvoiceSheet({
   billingEmail,
   contractUid,
 }: Props) {
+  const { fmtDate, fmtMonthYear, fmtDateTime } = useInvoiceFormatters()
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedInvoiceUid, setSelectedInvoiceUid] = useState<string | null>(
     null
