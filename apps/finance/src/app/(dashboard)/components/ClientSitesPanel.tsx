@@ -23,6 +23,7 @@ function ClientSitesPanelInner({ client }: ClientSitesPanelProps) {
   const searchParams = useSearchParams()
 
   // Client info: prefer live prop, fall back to URL params (survives refresh)
+
   const clientUid = client?.uid ?? searchParams.get("clientUid") ?? ""
   const clientName = client?.client_name ?? searchParams.get("clientName") ?? ""
   const clientEmail =
@@ -91,24 +92,25 @@ function ClientSitesPanelInner({ client }: ClientSitesPanelProps) {
   return (
     <>
       {!client ? (
-        <div className="text-muted-foreground rounded-lg border bg-neutral-50/70 px-4 py-6 text-sm">
-          Select a client to view their sites.
+        <div className="flex flex-col items-center justify-center gap-2 px-4 py-6 text-center">
+          <span className="text-text-1 text-2xl font-semibold">
+            No Client Selected
+          </span>
+          <span className="text-text-1 text-sm">
+            Select a client to view site
+          </span>
         </div>
       ) : (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <span className="text-muted-foreground text-xs">
-              {isLoading
-                ? "Loading sites..."
-                : `${sites.length} site${sites.length !== 1 ? "s" : ""}`}
-            </span>
             <Button
-              variant="primary"
-              size="sm"
+              variant="outlined"
+              className="w-36"
+              size="md"
               onClick={() => setAddSiteOpen(true)}
             >
               <Plus className="h-3.5 w-3.5" />
-              Add Site
+              Add more Site
             </Button>
           </div>
 
@@ -136,8 +138,8 @@ function ClientSitesPanelInner({ client }: ClientSitesPanelProps) {
 
           {sites.map((site) => (
             <div key={site.uid} className="bg-text-1 rounded-lg border">
-              <div className="rounded-sm bg-white py-3">
-                <div className="flex items-center justify-between gap-2 px-4 py-3">
+              <div className="rounded-md bg-white pb-3">
+                <div className="flex items-center justify-between gap-2 px-4 py-2">
                   <div className="flex w-full items-center justify-between gap-3">
                     <span className="text-sm font-semibold">
                       {site.site_name ?? "Unnamed Site"}
@@ -151,7 +153,7 @@ function ClientSitesPanelInner({ client }: ClientSitesPanelProps) {
                   </div>
                 </div>
 
-                <div className="mx-4 bg-neutral-100">
+                <div className="mx-4 rounded-md bg-neutral-100">
                   <div className="text-muted-foreground space-y-3 px-4 py-3 text-xs">
                     <div className="grid grid-cols-[auto_auto] justify-start gap-x-6 gap-y-2">
                       <span>Site UID</span>
@@ -191,7 +193,7 @@ function ClientSitesPanelInner({ client }: ClientSitesPanelProps) {
                     </div>
                   </div>
 
-                  <div className="flex gap-2 border-t px-4 py-3">
+                  <div className="flex max-w-md gap-2 border-t px-4 py-3">
                     <Button
                       className="min-w-[140px] rounded-sm text-sm"
                       size="lg"
@@ -220,7 +222,7 @@ function ClientSitesPanelInner({ client }: ClientSitesPanelProps) {
                           })
                         }
                       >
-                        View Contract
+                        View Site Contract
                       </Button>
                     ) : (
                       <Button

@@ -1,9 +1,9 @@
-"use client";
+"use client"
 
-import { useState, type ReactNode } from "react";
-import { Bell, CircleQuestionMark, LogOut } from "lucide-react";
-import { cn } from "../../lib/utils";
-import { Button } from "../ui/button";
+import { useState, type ReactNode } from "react"
+import { Bell, CircleQuestionMark, LogOut } from "lucide-react"
+import { cn } from "../../lib/utils"
+import { Button } from "../ui/button"
 import {
   Dialog,
   DialogContent,
@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "../ui/dialog";
+} from "../ui/dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,33 +20,33 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "../ui/dropdown-menu";
+} from "../ui/dropdown-menu"
 
 export type DashboardLink = {
-  label: string;
-  href: string;
-  icon?: ReactNode;
-};
+  label: string
+  href: string
+  icon?: ReactNode
+}
 
 export type DashboardLayoutProps = {
-  title?: string;
-  logo?: ReactNode;
-  links: DashboardLink[];
-  children: ReactNode;
-  className?: string;
-  headerRight?: ReactNode;
-  notificationsHref?: string;
-  notificationCount?: number;
-  profileName?: string;
-  profileEmail?: string;
+  title?: string
+  logo?: ReactNode
+  links: DashboardLink[]
+  children: ReactNode
+  className?: string
+  headerRight?: ReactNode
+  notificationsHref?: string
+  notificationCount?: number
+  profileName?: string
+  profileEmail?: string
   profileMenuItems?: Array<{
-    label: string;
-    href?: string;
-    onSelect?: () => void;
-  }>;
-  onLogout?: () => void | Promise<void>;
-  footerText?: string;
-};
+    label: string
+    href?: string
+    onSelect?: () => void
+  }>
+  onLogout?: () => void | Promise<void>
+  footerText?: string
+}
 
 export default function DashboardLayout({
   title = "Dashboard",
@@ -63,31 +63,34 @@ export default function DashboardLayout({
   onLogout,
   footerText = "All rights reserved.",
 }: DashboardLayoutProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [isLogoutOpen, setIsLogoutOpen] = useState(false);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isOpen, setIsOpen] = useState(false)
+  const [isLogoutOpen, setIsLogoutOpen] = useState(false)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
   const menuItems = profileMenuItems ?? [
     { label: "Profile", href: "#" },
     { label: "Settings", href: "#" },
     { label: "Sign out", onSelect: () => setIsLogoutOpen(true) },
-  ];
+  ]
 
   const handleMenuSelect = (item: (typeof menuItems)[number]) => {
     if (item.onSelect) {
-      item.onSelect();
-      return;
+      item.onSelect()
+      return
     }
     if (item.href) {
-      window.location.href = item.href;
+      window.location.href = item.href
     }
-  };
+  }
 
   return (
     <div
-      className={cn("min-h-screen bg-background text-foreground", className)}
+      className={cn(
+        "text-foreground flex h-screen flex-col bg-[#fafafa]",
+        className
+      )}
     >
-      <header className="sticky top-0 w-full border-b bg-primary backdrop-blur">
-        <div className="mx-auto flex h-16 w-full max-w-7xl items-center gap-4 px-4 pb-4 sm:h-26">
+      <header className="bg-primary sticky top-0 w-full border-b backdrop-blur">
+        <div className="mx-auto flex h-16 w-full max-w-[1440px] items-center gap-4 px-3 pb-4 sm:h-26">
           <div className="flex items-center gap-3">
             <Dialog open={isOpen} onOpenChange={setIsOpen}>
               <DialogTrigger asChild>
@@ -113,11 +116,11 @@ export default function DashboardLayout({
                 </button>
               </DialogTrigger>
               <DialogContent
-                className="fixed left-0 top-0 h-full w-72 max-w-[80vw] translate-x-0 translate-y-0 rounded-none border-r p-0 md:hidden"
+                className="fixed top-0 left-0 h-full w-72 max-w-[80vw] translate-x-0 translate-y-0 rounded-none border-r p-0 md:hidden"
                 showCloseButton
               >
                 <DialogHeader className="border-b px-4 py-4 text-left">
-                  <DialogTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                  <DialogTitle className="text-muted-foreground text-sm font-semibold tracking-wide uppercase">
                     {title}
                   </DialogTitle>
                 </DialogHeader>
@@ -126,7 +129,7 @@ export default function DashboardLayout({
                     <a
                       key={link.href}
                       href={link.href}
-                      className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"
+                      className="text-foreground hover:bg-muted flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium"
                       onClick={() => setIsOpen(false)}
                     >
                       {link.icon}
@@ -138,7 +141,7 @@ export default function DashboardLayout({
             </Dialog>
             <a
               href="/"
-              className="text-sm font-semibold uppercase tracking-[0.3em]"
+              className="text-sm font-semibold tracking-[0.3em] uppercase"
             >
               <img
                 src="https://i.ibb.co/VWbGZ7p0/switchfj-white.png"
@@ -162,28 +165,28 @@ export default function DashboardLayout({
             ))}
           </nav>
 
-          <div className="ml-auto flex items-center gap-2 ">
+          <div className="ml-auto flex items-center gap-2">
             <Button
               variant="ghost"
               size="icon-sm"
               aria-label="Help"
               className="hover:text-primary text-white"
             >
-              <CircleQuestionMark className="h-4 w-4 " />
+              <CircleQuestionMark className="h-4 w-4" />
             </Button>
             <Button
               variant="ghost"
               size="icon-sm"
               aria-label="Notifications"
               onClick={() => {
-                window.location.href = notificationsHref;
+                window.location.href = notificationsHref
               }}
               className="relative text-white"
             >
               <Bell className="h-6 w-6" aria-hidden="true" />
               {typeof notificationCount === "number" &&
                 notificationCount > 0 && (
-                  <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-white">
+                  <span className="bg-primary absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold text-white">
                     {notificationCount > 9 ? "9+" : notificationCount}
                   </span>
                 )}
@@ -191,7 +194,7 @@ export default function DashboardLayout({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon-lg" className="p-0">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border text-xs font-semibold text-white hover:text-primary">
+                  <span className="hover:text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-full border text-xs font-semibold text-white">
                     {profileName.slice(0, 2)}
                   </span>
                   {/* <span className="hidden text-sm font-medium sm:inline">{profileName}</span> */}
@@ -199,11 +202,11 @@ export default function DashboardLayout({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel className="space-y-1">
-                  <div className="text-sm font-medium leading-none">
+                  <div className="text-sm leading-none font-medium">
                     {profileName}
                   </div>
                   {profileEmail && (
-                    <div className="text-xs text-muted-foreground">
+                    <div className="text-muted-foreground text-xs">
                       {profileEmail}
                     </div>
                   )}
@@ -230,14 +233,14 @@ export default function DashboardLayout({
           showCloseButton={false}
         >
           <div className="flex flex-col items-center gap-4 px-6 pt-8 pb-2 text-center">
-            <span className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
-              <LogOut className="h-6 w-6 text-primary" aria-hidden="true" />
+            <span className="bg-primary/10 inline-flex h-14 w-14 items-center justify-center rounded-full">
+              <LogOut className="text-primary h-6 w-6" aria-hidden="true" />
             </span>
             <div className="space-y-1.5">
               <DialogTitle className="text-xl font-semibold">
                 Log out?
               </DialogTitle>
-              <DialogDescription className="text-sm text-muted-foreground">
+              <DialogDescription className="text-muted-foreground text-sm">
                 You are about to end your session. You can always log back in
                 anytime.
               </DialogDescription>
@@ -258,12 +261,12 @@ export default function DashboardLayout({
               isLoading={isLoggingOut}
               disabled={isLoggingOut}
               onClick={async () => {
-                setIsLoggingOut(true);
+                setIsLoggingOut(true)
                 try {
-                  await onLogout?.();
+                  await onLogout?.()
                 } finally {
-                  setIsLoggingOut(false);
-                  setIsLogoutOpen(false);
+                  setIsLoggingOut(false)
+                  setIsLogoutOpen(false)
                 }
               }}
             >
@@ -273,15 +276,11 @@ export default function DashboardLayout({
         </DialogContent>
       </Dialog>
 
-      <main className="relative z-10 -mt-5 w-full rounded-t-3xl bg-background px-4 py-6 shadow-sm sm:px-6 sm:py-8">
-        <div className="max-w-7xl mx-auto w-full">{children}</div>
-      </main>
-
-      {/* <footer className="border-t py-3">
-        <div className="mx-auto w-full max-w-7xl px-4 text-xs text-muted-foreground">
-          {footerText}
+      <main className="relative z-10 -mt-5 flex-1 overflow-y-auto rounded-t-3xl bg-[#fafafa] px-4 py-6 shadow-sm sm:px-6 sm:py-8">
+        <div className="border-border mx-auto h-full w-full max-w-[1440px] rounded-md border">
+          {children}
         </div>
-      </footer> */}
+      </main>
     </div>
-  );
+  )
 }

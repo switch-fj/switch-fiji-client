@@ -49,7 +49,7 @@ export default function DashboardHeaders({
   )
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 bg-white px-4 py-3">
+    <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
       <div className="bg-primary flex items-center rounded-md px-4 py-3">
         <div className="flex flex-row items-center gap-4">
           <span className="text-3xl font-normal tracking-wide text-white">

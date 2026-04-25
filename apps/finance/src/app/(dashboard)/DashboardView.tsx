@@ -32,7 +32,7 @@ function DashboardViewInner() {
   }
 
   return (
-    <div className="border-border/60 flex flex-col gap-6 rounded-lg border bg-white p-6">
+    <div className="flex flex-col gap-6 p-6">
       <DashboardHeaders
         totalCount={clients.length}
         onAddClient={() => setAddClientOpen(true)}
@@ -42,12 +42,12 @@ function DashboardViewInner() {
         onClose={() => setAddClientOpen(false)}
       />
 
-      <div className="grid lg:h-[calc(100vh-220px)] lg:grid-cols-[540px_minmax(0,1fr)]">
+      <div className="grid lg:h-[calc(100vh-310px)] lg:grid-cols-[540px_minmax(0,1fr)]">
         <section className="border-red space-y-3 overflow-y-auto border bg-white p-4">
           <div className="flex items-center justify-between font-semibold">
-            <span className="text-text-1 text-lg">Clients</span>
-            <span className="text-text-1 text-xs font-medium">
-              {isLoading ? "Loading…" : `${clients.length} total`}
+            <span className="text-text-1 text-xl">Clients</span>
+            <span className="text-text-1 text-xs font-normal">
+              All client will display here
             </span>
           </div>
 
@@ -73,10 +73,10 @@ function DashboardViewInner() {
         </section>
 
         <section className="space-y-4 overflow-y-auto bg-[#1D1D1D]/5 p-4">
-          <div className="flex items-center justify-between text-sm font-semibold">
-            <span>Sites</span>
-            <span className="text-muted-foreground text-xs font-medium">
-              {activeClient ? activeClient.client_name : "Select a client"}
+          <div className="flex items-center justify-between border-b pb-2">
+            <span className="text-text-1 text-lg font-semibold">Sites</span>
+            <span className="text-text-1 text-xs">
+              selecr a client to view site
             </span>
           </div>
 
@@ -86,7 +86,7 @@ function DashboardViewInner() {
 
       <button
         onClick={() => setAddClientOpen(true)}
-        className="bg-primary fixed right-8 bottom-8 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-lg transition-opacity hover:opacity-90"
+        className="bg-primary fixed right-30 bottom-8 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-lg transition-opacity hover:opacity-90"
         aria-label="Add client"
       >
         <UserPlus className="h-6 w-6" />
