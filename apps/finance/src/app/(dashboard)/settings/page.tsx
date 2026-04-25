@@ -15,7 +15,21 @@ import {
 import {
   ContractSettingsSchema,
   type ContractSettingsInput,
+  type ContractSettingsRespModel,
 } from "@/types/settings"
+
+function toFormValues(s: ContractSettingsRespModel): ContractSettingsInput {
+  return {
+    vat_rate: String(s.vat_rate ?? ""),
+    efl_standard_rate_kwh: String(s.efl_standard_rate_kwh ?? ""),
+    primary_currency: String(s.primary_currency ?? ""),
+    asset_performance: Boolean(s.asset_performance),
+    invoice_generated: Boolean(s.invoice_generated),
+    invoice_emailed: Boolean(s.invoice_emailed),
+    time_format: String(s.time_format ?? ""),
+    date_format: s.date_format as "dmy" | "mdy",
+  }
+}
 import FormField from "./FormField"
 import SettingsSelect from "./SettingsSelect"
 import NotificationRow from "./NotificationRow"
@@ -48,20 +62,11 @@ const SettingsPage = observer(() => {
   useEffect(() => {
     const s = SettingsStore.settings
     if (!s) return
-    reset({
-      vat_rate: String(s.vat_rate ?? ""),
-      efl_standard_rate_kwh: String(s.efl_standard_rate_kwh ?? ""),
-      primary_currency: String(s.primary_currency ?? ""),
-      asset_performance: Boolean(s.asset_performance),
-      invoice_generated: Boolean(s.invoice_generated),
-      invoice_emailed: Boolean(s.invoice_emailed),
-      time_format: String(s.time_format ?? ""),
-      date_format: s.date_format as "dmy" | "mdy",
-    })
+    reset(toFormValues(s))
     setFormReady(true)
   }, [SettingsStore.settings, reset])
 
-  const onSubmit = (values: ContractSettingsInput) => {
+  const onSubmit = async (values: ContractSettingsInput) => {
     const changed = Object.fromEntries(
       Object.keys(dirtyFields).map((key) => [
         key,
@@ -69,7 +74,10 @@ const SettingsPage = observer(() => {
       ])
     )
     if (Object.keys(changed).length === 0) return
-    SettingsStore.updateSettings(changed)
+    const ok = await SettingsStore.updateSettings(changed)
+    if (ok && SettingsStore.settings) {
+      reset(toFormValues(SettingsStore.settings))
+    }
   }
 
   if (SettingsStore.isLoading.fetch) {

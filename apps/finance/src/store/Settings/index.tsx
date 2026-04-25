@@ -59,16 +59,18 @@ class SettingsStore {
     }
   }
 
-  async updateSettings(payload: ContractSettingsUpdateInput) {
+  async updateSettings(payload: ContractSettingsUpdateInput): Promise<boolean> {
     this.isLoading.update = true
     this.errors.update = ""
 
     try {
-      const response = await updateContractSettings(payload)
+      await updateContractSettings(payload)
+      const fresh = await getContractSettings()
       runInAction(() => {
-        this.settings = response.data
+        this.settings = fresh.data
       })
       toast.success("Settings saved successfully")
+      return true
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Failed to save settings"
@@ -76,6 +78,7 @@ class SettingsStore {
         this.errors.update = message
       })
       toast.error(message)
+      return false
     } finally {
       runInAction(() => {
         this.isLoading.update = false
