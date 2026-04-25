@@ -42,3 +42,20 @@ export enum EnumContractBillingFrequency {
   SEMI_ANNUALLY = "semi-annually",
   ANNUALLY = "annually",
 }
+
+export const CURRENCY_OPTIONS = [
+  { value: "USD", label: "USD" },
+  { value: "FJD", label: "FJD" },
+  { value: "AUD", label: "AUD" },
+  { value: "NZD", label: "NZD" },
+]
+
+export const TIME_FORMAT_OPTIONS = [
+  { value: "24", label: "24-hour" },
+  { value: "12", label: "12-hour" },
+]
+
+export const DATE_FORMAT_OPTIONS = [
+  { value: "dmy", label: "DD-MMM-YYYY" },
+  { value: "mdy", label: "MM/DD/YYYY" },
+]
