@@ -311,7 +311,7 @@ export default function ViewInvoiceSheet({
                           ].join(" ")}
                         >
                           <span className="text-sm font-medium">
-                            {invoice?.invoice_ref}
+                            {item.invoice.invoice_ref}
                           </span>
                           <span className="text-text-1 text-sm">
                             {fmtMonthYear(item.sent_at)}

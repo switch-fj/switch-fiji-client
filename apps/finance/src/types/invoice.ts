@@ -1,3 +1,13 @@
+export type InvoiceHistorySummary = {
+  uid: string
+  invoice_ref: string
+  period_start_at: string
+  period_end_at: string
+  subtotal: string
+  vat_rate: string
+  energy_mix: string | null
+}
+
 export type InvoiceHistoryRespModel = {
   uid: string
   invoice_uid: string
@@ -5,6 +15,7 @@ export type InvoiceHistoryRespModel = {
   sent_at: string
   was_successful: boolean
   failure_reason: string | null
+  invoice: InvoiceHistorySummary
 }
 
 export type InvoiceLineItemRespModel = {
