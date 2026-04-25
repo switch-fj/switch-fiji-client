@@ -125,3 +125,17 @@ export type SiteModel = {
   firmware: string | null
   contract: ContractModel | null
 }
+
+export type SiteStats = {
+  power_kw?: number | null
+  energy_today_kwh?: number | null
+  energy_month_kwh?: number | null
+  energy_total_kwh?: number | null
+  voltage?: number | null
+  current?: number | null
+  frequency?: number | null
+  state_of_charge?: number | null
+  grid_power?: number | null
+  status?: string | null
+  [key: string]: string | number | null | undefined
+}

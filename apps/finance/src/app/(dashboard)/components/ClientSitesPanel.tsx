@@ -1,10 +1,10 @@
 "use client"
 
-import { Suspense, useState } from "react"
+import { Fragment, Suspense, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Button } from "@workspace/ui"
 import { Plus, Cpu, Radio } from "lucide-react"
-import { useSites } from "@/hooks/useSite"
+import { useSites, useSiteStats } from "@/hooks/useSite"
 import type { ClientModel } from "@/types/client"
 import { EnumContractType, EnumContractSystemMode } from "@/constants/mangle"
 import AddSiteModal from "./AddSiteModal"
@@ -15,6 +15,52 @@ import ViewInvoiceSheet from "./ViewInvoiceSheet"
 
 type ClientSitesPanelProps = {
   client?: ClientModel
+}
+
+const STAT_LABELS: Record<string, string> = {
+  power_kw: "Power (kW)",
+  energy_today_kwh: "Energy Today (kWh)",
+  energy_month_kwh: "Energy This Month (kWh)",
+  energy_total_kwh: "Total Energy (kWh)",
+  voltage: "Voltage (V)",
+  current: "Current (A)",
+  frequency: "Frequency (Hz)",
+  state_of_charge: "State of Charge (%)",
+  grid_power: "Grid Power (kW)",
+  status: "Status",
+}
+
+function SiteStatsGrid({ siteUid }: { siteUid: string }) {
+  const { stats, error } = useSiteStats(siteUid)
+
+  if (error) {
+    return <p className="text-muted-foreground text-xs">Stats unavailable.</p>
+  }
+
+  if (!stats || stats.status === "computing") {
+    return <p className="text-muted-foreground text-xs">Computing stats…</p>
+  }
+
+  const entries = Object.entries(stats).filter(
+    ([, v]) => v !== null && v !== undefined
+  )
+
+  if (entries.length === 0) {
+    return <p className="text-muted-foreground text-xs">No stats available.</p>
+  }
+
+  return (
+    <div className="grid grid-cols-[auto_auto] justify-start gap-x-6 gap-y-2">
+      {entries.map(([key, value]) => (
+        <Fragment key={key}>
+          <span>{STAT_LABELS[key] ?? key}</span>
+          <span className="text-foreground font-mono font-semibold">
+            {String(value)}
+          </span>
+        </Fragment>
+      ))}
+    </div>
+  )
 }
 
 function ClientSitesPanelInner({ client }: ClientSitesPanelProps) {
@@ -155,17 +201,7 @@ function ClientSitesPanelInner({ client }: ClientSitesPanelProps) {
 
                 <div className="mx-4 rounded-md bg-neutral-100">
                   <div className="text-muted-foreground space-y-3 px-4 py-3 text-xs">
-                    <div className="grid grid-cols-[auto_auto] justify-start gap-x-6 gap-y-2">
-                      <span>Site UID</span>
-                      <span className="text-foreground font-mono font-semibold">
-                        {site.uid.slice(0, 8)}…
-                      </span>
-
-                      <span>Client UID</span>
-                      <span className="text-foreground font-mono font-semibold">
-                        {site.client_uid.slice(0, 8)}…
-                      </span>
-                    </div>
+                    <SiteStatsGrid siteUid={site.uid} />
 
                     <div className="grid grid-cols-2 gap-2 pt-1">
                       <div className="flex items-center gap-2 rounded-md border bg-white px-3 py-2">

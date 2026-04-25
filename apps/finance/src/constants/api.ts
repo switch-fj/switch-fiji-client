@@ -18,6 +18,8 @@ export const CLIENT = {
 export const SITE = {
   LIST: (clientUid: string) => `/api/v1/admin/sites/${clientUid}`,
   ADD: "/api/v1/admin/site/add",
+  STATS_STREAM: (siteUid: string) =>
+    `/api/v1/admin/sites/${siteUid}/stats/stream`,
 } as const
 
 export const CONTRACT = {
