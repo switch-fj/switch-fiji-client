@@ -1,7 +1,11 @@
 "use client"
 
-import { useQuery } from "@tanstack/react-query"
-import { getInvoice, getInvoiceHistory } from "@/requests/invoice"
+import { useQuery, useMutation } from "@tanstack/react-query"
+import {
+  getInvoice,
+  getInvoiceHistory,
+  downloadInvoicePdf,
+} from "@/requests/invoice"
 
 export const INVOICE_KEYS = {
   detail: (uid: string) => ["invoice", uid] as const,
@@ -23,5 +27,17 @@ export const useGetInvoiceHistory = (contractUid: string | null) => {
     queryFn: () => getInvoiceHistory(contractUid!),
     select: (res) => res.data,
     enabled: !!contractUid,
+  })
+}
+
+export const useDownloadInvoicePdf = () => {
+  return useMutation({
+    mutationFn: ({
+      invoiceUid,
+      invoiceRef,
+    }: {
+      invoiceUid: string
+      invoiceRef: string
+    }) => downloadInvoicePdf(invoiceUid, invoiceRef),
   })
 }
