@@ -39,6 +39,15 @@ import type {
 } from "@/types/site"
 import ContractSummaryBar from "./ContractSummaryBar"
 
+// Parse "YYYY-MM-DD" as local midnight (avoids UTC-shift showing the wrong day)
+const localDate = (s: string) => {
+  const [y, m, d] = s.split("-").map(Number)
+  return new Date(y, m - 1, d)
+}
+// Format a Date to "YYYY-MM-DD" using local time
+const toDateStr = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
 const TariffRowSchema = z.object({
@@ -306,9 +315,9 @@ export default function ContractDetailsSheet({
   const termYears = watch("term_years")
   const contractEnd = useMemo(() => {
     if (!commissioningDate || !termYears) return ""
-    const d = new Date(commissioningDate)
+    const d = localDate(commissioningDate)
     d.setFullYear(d.getFullYear() + parseInt(termYears, 10))
-    return d.toISOString().split("T")[0]
+    return toDateStr(d)
   }, [commissioningDate, termYears])
 
   // Auto-compute total
@@ -480,12 +489,10 @@ export default function ContractDetailsSheet({
                         render={({ field }) => (
                           <DatePickerInput
                             value={
-                              field.value ? new Date(field.value) : undefined
+                              field.value ? localDate(field.value) : undefined
                             }
                             onChange={(d) =>
-                              field.onChange(
-                                d?.toISOString().split("T")[0] ?? ""
-                              )
+                              field.onChange(d ? toDateStr(d) : "")
                             }
                             className="flex-1"
                           />
@@ -581,13 +588,11 @@ export default function ContractDetailsSheet({
                         render={({ field }) => (
                           <DatePickerInput
                             value={
-                              field.value ? new Date(field.value) : undefined
+                              field.value ? localDate(field.value) : undefined
                             }
                             className="flex-1"
                             onChange={(d) =>
-                              field.onChange(
-                                d?.toISOString().split("T")[0] ?? ""
-                              )
+                              field.onChange(d ? toDateStr(d) : "")
                             }
                           />
                         )}
@@ -606,7 +611,7 @@ export default function ContractDetailsSheet({
                   <div className="flex items-center gap-3">
                     <label className={LABEL}>Contract End</label>
                     <DatePickerInput
-                      value={contractEnd ? new Date(contractEnd) : undefined}
+                      value={contractEnd ? localDate(contractEnd) : undefined}
                       className="flex-1"
                       disabled
                     />
