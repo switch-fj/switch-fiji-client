@@ -27,6 +27,7 @@ export const downloadInvoicePdf = async (
 ) => {
   const { data } = await api.get(INVOICE.PDF(invoiceUid), {
     responseType: "blob",
+    withCredentials: false,
   })
   const url = URL.createObjectURL(new Blob([data], { type: "application/pdf" }))
   const a = document.createElement("a")
