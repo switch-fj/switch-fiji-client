@@ -37,7 +37,7 @@ export function fmtDateTime(
 }
 
 export function fmtAmount(value: string | number) {
-  return `$${parseFloat(String(value)).toFixed(2)}`
+  return `$${parseFloat(String(value)).toFixed(4)}`
 }
 
 export function uniqueByInvoiceUid(
