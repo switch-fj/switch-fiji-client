@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Sheet, SheetContent, SheetTitle, Button } from "@workspace/ui"
 import {
   ChevronLeft,
@@ -17,6 +17,7 @@ import {
 } from "@/hooks/useInvoice"
 import { uniqueByInvoiceUid } from "@/utils/invoice"
 import { useInvoiceFormatters } from "@/hooks/useInvoiceFormatters"
+import { useStore } from "@/store"
 import InvoiceLineItemsTable from "./InvoiceLineItemsTable"
 import InvoiceMeterDataTable from "./InvoiceMeterDataTable"
 
@@ -37,8 +38,13 @@ export default function ViewInvoiceSheet({
   billingEmail,
   contractUid,
 }: Props) {
+  const { SettingsStore } = useStore()
   const { fmtDate, fmtMonthYear, fmtDateTime } = useInvoiceFormatters()
   const [searchQuery, setSearchQuery] = useState("")
+
+  useEffect(() => {
+    SettingsStore.fetchSettings()
+  }, [])
   const [selectedInvoiceUid, setSelectedInvoiceUid] = useState<string | null>(
     null
   )
