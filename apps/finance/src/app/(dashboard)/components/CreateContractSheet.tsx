@@ -15,7 +15,11 @@ import {
   SelectValue,
 } from "@workspace/ui"
 import { CreateContractSchema, type CreateContractInput } from "@/types/site"
-import { EnumContractType, EnumContractSystemMode } from "@/constants/mangle"
+import {
+  EnumContractType,
+  EnumContractSystemMode,
+  CURRENCY_OPTIONS,
+} from "@/constants/mangle"
 import { useCreateContract } from "@/hooks/useContract"
 
 type Props = {
@@ -43,8 +47,6 @@ const SYSTEM_MODE_OPTIONS = [
   { label: "Off Grid", value: EnumContractSystemMode.OFF_GRID },
 ]
 
-const CURRENCY_OPTIONS = [{ label: "USD", value: "USD" }]
-
 export default function CreateContractSheet({
   open,
   onClose,
@@ -68,7 +70,7 @@ export default function CreateContractSheet({
     defaultValues: {
       client_uid: clientUid,
       site_uid: siteUid,
-      currency: "USD",
+      currency: "FJD",
     },
   })
 

@@ -17,7 +17,7 @@ export const CreateContractSchema = z.object({
   system_mode: z.nativeEnum(EnumContractSystemMode, {
     message: "Please select a system mode.",
   }),
-  currency: z.literal("USD", {
+  currency: z.enum(["USD", "FJD", "AUD", "NZD"], {
     message: "Please select a currency.",
   }),
 })
