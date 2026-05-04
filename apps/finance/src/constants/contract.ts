@@ -109,6 +109,16 @@ export const VIS = {
     ppa_on_grid: true,
     lease_on_grid: false,
   },
+  actual_commissioned_at: {
+    ppa_off_grid: true,
+    ppa_on_grid: true,
+    lease_on_grid: true,
+  },
+  actual_end_at: {
+    ppa_off_grid: true,
+    ppa_on_grid: true,
+    lease_on_grid: true,
+  },
 } satisfies Record<string, Record<Combo, boolean>>
 
 export const BILLING_FREQUENCY_OPTIONS = Object.values(

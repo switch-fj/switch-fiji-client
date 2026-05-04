@@ -20,6 +20,7 @@ export const CreateContractSchema = z.object({
   currency: z.enum(["USD", "FJD", "AUD", "NZD"], {
     message: "Please select a currency.",
   }),
+  timezone: z.string().min(1, "Please select a timezone."),
 })
 
 export type CreateContractInput = z.infer<typeof CreateContractSchema>
@@ -37,6 +38,8 @@ export type ContractDetailsPayload = {
   billing_frequency?: string
   commissioned_at?: string
   end_at?: string
+  actual_commissioned_at?: string
+  actual_end_at?: string
   implementation_period?: number
   system_size_kwp?: number
   guaranteed_production_kwh_per_kwp?: number
@@ -86,6 +89,8 @@ export type ContractDetailsRespModel = {
   signed_at: string | null
   commissioned_at: string | null
   end_at: string | null
+  actual_commissioned_at: string | null
+  actual_end_at: string | null
   system_size_kwp: number | null
   guaranteed_production_kwh_per_kwp: number | null
   grid_meter_reading_at_commissioning: number | null
