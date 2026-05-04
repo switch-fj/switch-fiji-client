@@ -79,6 +79,8 @@ const ContractDetailsSchema = z.object({
   monthly_baseline_consumption: z.string().optional(),
   minimum_consumption_monthly: z.string().optional(),
   minimum_spend: z.string().optional(),
+  actual_commissioned_at: z.string().optional(),
+  actual_end_at: z.string().optional(),
   tariffs: z.array(TariffRowSchema),
 })
 
@@ -181,6 +183,8 @@ function detailsToDefaults(d: ContractDetailsRespModel): ContractDetailsValues {
         ? String(d.minimum_consumption_monthly_kwh)
         : "",
     minimum_spend: d.minimum_spend != null ? String(d.minimum_spend) : "",
+    actual_commissioned_at: d.actual_commissioned_at?.split("T")[0] ?? "",
+    actual_end_at: d.actual_end_at?.split("T")[0] ?? "",
     tariffs: slots.map((t) => ({
       period_number: String(t.period_number),
       slot: t.slot,
@@ -252,6 +256,8 @@ export default function ContractDetailsSheet({
     monthly_baseline_consumption: "",
     minimum_consumption_monthly: "",
     minimum_spend: "",
+    actual_commissioned_at: "",
+    actual_end_at: "",
     tariffs: [],
   }
 
@@ -319,6 +325,15 @@ export default function ContractDetailsSheet({
     d.setFullYear(d.getFullYear() + parseInt(termYears, 10))
     return toDateStr(d)
   }, [commissioningDate, termYears])
+
+  // Auto-compute actual end date from actual commissioned date + term years
+  const actualCommissionedAt = watch("actual_commissioned_at")
+  const actualEnd = useMemo(() => {
+    if (!actualCommissionedAt || !termYears) return ""
+    const d = localDate(actualCommissionedAt)
+    d.setFullYear(d.getFullYear() + parseInt(termYears, 10))
+    return toDateStr(d)
+  }, [actualCommissionedAt, termYears])
 
   // Auto-compute total
   const equipmentLease = watch("equipment_lease")
@@ -391,6 +406,10 @@ export default function ContractDetailsSheet({
         values.minimum_consumption_monthly
       )
     if (show("minimum_spend")) payload.minimum_spend = num(values.minimum_spend)
+    if (values.actual_commissioned_at)
+      payload.actual_commissioned_at = dt(values.actual_commissioned_at)
+    const resolvedActualEnd = values.actual_end_at || actualEnd
+    if (resolvedActualEnd) payload.actual_end_at = dt(resolvedActualEnd)
     if (show("tariffs_table")) {
       payload.tariffs = values.tariffs.map((t) => ({
         period_number: parseInt(t.period_number, 10),
@@ -612,6 +631,58 @@ export default function ContractDetailsSheet({
                     <label className={LABEL}>Contract End</label>
                     <DatePickerInput
                       value={contractEnd ? localDate(contractEnd) : undefined}
+                      className="flex-1"
+                      disabled
+                    />
+                  </div>
+                )}
+
+                {/* Actual Commissioned Date */}
+                {show("actual_commissioned_at") && (
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-3">
+                      <label className={LABEL}>
+                        Actual Commissioned Date{" "}
+                        <span className="text-muted-foreground font-normal">
+                          (optional)
+                        </span>
+                      </label>
+                      <Controller
+                        name="actual_commissioned_at"
+                        control={control}
+                        render={({ field }) => (
+                          <DatePickerInput
+                            value={
+                              field.value ? localDate(field.value) : undefined
+                            }
+                            className="flex-1"
+                            onChange={(d) =>
+                              field.onChange(d ? toDateStr(d) : "")
+                            }
+                          />
+                        )}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Actual End Date (auto-computed from actual commissioned + term years) */}
+                {show("actual_end_at") && (
+                  <div className="flex items-center gap-3">
+                    <label className={LABEL}>
+                      Actual End Date{" "}
+                      <span className="text-muted-foreground font-normal">
+                        (optional)
+                      </span>
+                    </label>
+                    <DatePickerInput
+                      value={
+                        watch("actual_end_at")
+                          ? localDate(watch("actual_end_at")!)
+                          : actualEnd
+                            ? localDate(actualEnd)
+                            : undefined
+                      }
                       className="flex-1"
                       disabled
                     />

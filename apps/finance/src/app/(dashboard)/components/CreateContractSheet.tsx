@@ -19,6 +19,7 @@ import {
   EnumContractType,
   EnumContractSystemMode,
   CURRENCY_OPTIONS,
+  TIMEZONE_OPTIONS,
 } from "@/constants/mangle"
 import { useCreateContract } from "@/hooks/useContract"
 
@@ -71,6 +72,7 @@ export default function CreateContractSheet({
       client_uid: clientUid,
       site_uid: siteUid,
       currency: "FJD",
+      timezone: "Pacific/Fiji",
     },
   })
 
@@ -82,7 +84,6 @@ export default function CreateContractSheet({
       )
     : SYSTEM_MODE_OPTIONS
 
-  // Auto-select On Grid when Lease is chosen
   if (isLease) {
     setValue("system_mode", EnumContractSystemMode.ON_GRID)
   }
@@ -221,6 +222,34 @@ export default function CreateContractSheet({
               {errors.currency && (
                 <p className="text-destructive text-xs">
                   {errors.currency.message}
+                </p>
+              )}
+            </div>
+
+            {/* Timezone */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Timezone</label>
+              <Controller
+                name="timezone"
+                control={control}
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger className="w-full bg-white font-normal">
+                      <SelectValue placeholder="Select timezone" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TIMEZONE_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.timezone && (
+                <p className="text-destructive text-xs">
+                  {errors.timezone.message}
                 </p>
               )}
             </div>
