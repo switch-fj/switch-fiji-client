@@ -52,6 +52,7 @@ export type ContractDetailsPayload = {
   minimum_spend?: number
   estimated_utility?: number
   tariff_periods?: number
+  tariff_indexed_rule_type?: string
   tariffs?: TariffRowPayload[]
 }
 
@@ -103,6 +104,7 @@ export type ContractDetailsRespModel = {
   estimated_utility: number | null
   tariff_periods: number | null
   tariff_slots: string | null
+  tariff_indexed_rule_type: string | null
 }
 
 export type ContractDetailedRespModel = {
@@ -143,4 +145,17 @@ export type SiteStats = {
   grid_power?: number | null
   status?: string | null
   [key: string]: string | number | null | undefined
+}
+
+export type ContractDetailsSheetProps = {
+  open: boolean
+  onClose: () => void
+  clientUid: string
+  contractUid: string
+  contractType: EnumContractType
+  systemMode: EnumContractSystemMode
+  currency: string
+  clientName: string
+  siteName: string | null
+  existingDetails?: ContractDetailsRespModel
 }

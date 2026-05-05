@@ -1,221 +1,31 @@
 "use client"
 
-import { useMemo, useEffect, useRef } from "react"
-import { useForm, useFieldArray, Controller } from "react-hook-form"
+import { useMemo, useEffect, useRef, useState } from "react"
+import { useForm, useFieldArray } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { z } from "zod"
-import { ArrowRight } from "lucide-react"
+import { ArrowRight, CheckCircle, ChevronLeft } from "lucide-react"
 import { toast } from "sonner"
-import {
-  Sheet,
-  SheetContent,
-  Button,
-  Input,
-  DatePickerInput,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@workspace/ui"
+import { Sheet, SheetContent, Button } from "@workspace/ui"
 import { EnumContractType, EnumContractSystemMode } from "@/constants/mangle"
-import {
-  type Combo,
-  getCombo,
-  VIS,
-  BILLING_FREQUENCY_OPTIONS,
-  TARIFF_PERIOD_OPTIONS,
-  IMPLEMENTATION_PERIOD_OPTIONS,
-  TARIFF_SLOT_TYPE_OPTIONS,
-} from "@/constants/contract"
+import { getCombo, VIS } from "@/constants/contract"
 import {
   useCreateContractDetails,
   useUpdateContractDetails,
 } from "@/hooks/useContract"
-import type {
-  ContractDetailsPayload,
-  ContractDetailsRespModel,
-  TariffRespModel,
-} from "@/types/site"
+import type { ContractDetailsPayload } from "@/types/site"
+import type { ContractDetailsSheetProps } from "@/types/site"
+import {
+  localDate,
+  toDateStr,
+  makeDetailsSchema,
+  detailsToDefaults,
+} from "@/constants/contractDetails"
+import type { ContractDetailsValues } from "@/constants/contractDetails"
+import { toUtcIso } from "@/utils/date"
 import ContractSummaryBar from "./ContractSummaryBar"
-
-// Parse "YYYY-MM-DD" as local midnight (avoids UTC-shift showing the wrong day)
-const localDate = (s: string) => {
-  const [y, m, d] = s.split("-").map(Number)
-  return new Date(y, m - 1, d)
-}
-// Format a Date to "YYYY-MM-DD" using local time
-const toDateStr = (d: Date) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
-
-// ─── Schema ───────────────────────────────────────────────────────────────────
-
-const TariffRowSchema = z.object({
-  period_number: z.string(),
-  slot: z.string(),
-  slot_type: z.string().min(1, "Required"),
-  rate: z.string().min(1, "Required"),
-  time_start: z.string().optional(),
-  time_end: z.string().optional(),
-})
-
-// Keep a loose type for TypeScript (all optional) — runtime validation is
-// handled by the dynamic schema produced by makeDetailsSchema below.
-const ContractDetailsSchema = z.object({
-  term_years: z.string().optional(),
-  signing_date: z.string().optional(),
-  billing_frequency: z.string().optional(),
-  tariff_periods: z.string().optional(),
-  commissioning_date: z.string().optional(),
-  implementation_period: z.string().optional(),
-  client_email: z.string().optional(),
-  grid_meter_reading: z.string().optional(),
-  system_size_kwp: z.string().optional(),
-  guaranteed_production: z.string().optional(),
-  equipment_lease: z.string().optional(),
-  maintenance: z.string().optional(),
-  solar_production_month: z.string().optional(),
-  estimated_utility: z.string().optional(),
-  monthly_baseline_consumption: z.string().optional(),
-  minimum_consumption_monthly: z.string().optional(),
-  minimum_spend: z.string().optional(),
-  actual_commissioned_at: z.string().optional(),
-  actual_end_at: z.string().optional(),
-  tariffs: z.array(TariffRowSchema),
-})
-
-type ContractDetailsValues = z.infer<typeof ContractDetailsSchema>
-
-function makeDetailsSchema(combo: Combo | null) {
-  const req = (msg: string) => z.string().min(1, msg)
-  const opt = z.string().optional()
-  const f = (key: keyof typeof VIS, msg: string) =>
-    combo && VIS[key][combo] ? req(msg) : opt
-
-  return z.object({
-    term_years: f("term_years", "Term years is required"),
-    signing_date: f("signing_date", "Signing date is required"),
-    billing_frequency: f("billing_frequency", "Billing frequency is required"),
-    tariff_periods: f("tariff_periods", "Tariff periods is required"),
-    commissioning_date: f(
-      "commissioning_date",
-      "Commissioning date is required"
-    ),
-    implementation_period: f(
-      "implementation_period",
-      "Implementation period is required"
-    ),
-    client_email:
-      combo && VIS.client_email[combo]
-        ? z.string().min(1, "Client email is required").email("Invalid email")
-        : opt,
-    grid_meter_reading: f(
-      "grid_meter_reading",
-      "Grid meter reading is required"
-    ),
-    system_size_kwp: f("system_size_kwp", "System size is required"),
-    guaranteed_production: f(
-      "guaranteed_production",
-      "Guaranteed production is required"
-    ),
-    equipment_lease: f("equipment_lease", "Equipment lease is required"),
-    maintenance: f("maintenance", "Maintenance is required"),
-    solar_production_month: f(
-      "solar_production_month",
-      "Solar production is required"
-    ),
-    estimated_utility: f("estimated_utility", "Estimated utility is required"),
-    monthly_baseline_consumption: f(
-      "monthly_baseline_consumption",
-      "Monthly baseline consumption is required"
-    ),
-    minimum_consumption_monthly: f(
-      "minimum_consumption_monthly",
-      "Minimum monthly consumption is required"
-    ),
-    minimum_spend: f("minimum_spend", "Minimum spend is required"),
-    tariffs:
-      combo && VIS.tariffs_table[combo]
-        ? z.array(TariffRowSchema).min(1, "Add at least one tariff row")
-        : z.array(TariffRowSchema),
-  })
-}
-
-// ─── Pre-fill helper ─────────────────────────────────────────────────────────
-
-function detailsToDefaults(d: ContractDetailsRespModel): ContractDetailsValues {
-  const slots: TariffRespModel[] = (() => {
-    try {
-      return JSON.parse(d.tariff_slots ?? "[]")
-    } catch {
-      return []
-    }
-  })()
-  return {
-    term_years: d.term_years != null ? String(d.term_years) : "",
-    signing_date: d.signed_at?.split("T")[0] ?? "",
-    billing_frequency: d.billing_frequency ?? "",
-    tariff_periods: d.tariff_periods != null ? String(d.tariff_periods) : "",
-    commissioning_date: d.commissioned_at?.split("T")[0] ?? "",
-    implementation_period:
-      d.implementation_period != null ? String(d.implementation_period) : "",
-    client_email: "",
-    grid_meter_reading:
-      d.grid_meter_reading_at_commissioning != null
-        ? String(d.grid_meter_reading_at_commissioning)
-        : "",
-    system_size_kwp: d.system_size_kwp != null ? String(d.system_size_kwp) : "",
-    guaranteed_production:
-      d.guaranteed_production_kwh_per_kwp != null
-        ? String(d.guaranteed_production_kwh_per_kwp)
-        : "",
-    equipment_lease: d.equipment_lease_amount ?? "",
-    maintenance: d.maintenance_amount ?? "",
-    solar_production_month: "",
-    estimated_utility:
-      d.estimated_utility != null ? String(d.estimated_utility) : "",
-    monthly_baseline_consumption:
-      d.monthly_baseline_consumption_kwh != null
-        ? String(d.monthly_baseline_consumption_kwh)
-        : "",
-    minimum_consumption_monthly:
-      d.minimum_consumption_monthly_kwh != null
-        ? String(d.minimum_consumption_monthly_kwh)
-        : "",
-    minimum_spend: d.minimum_spend != null ? String(d.minimum_spend) : "",
-    actual_commissioned_at: d.actual_commissioned_at?.split("T")[0] ?? "",
-    actual_end_at: d.actual_end_at?.split("T")[0] ?? "",
-    tariffs: slots.map((t) => ({
-      period_number: String(t.period_number),
-      slot: t.slot,
-      slot_type: t.slot_type,
-      rate: String(t.rate),
-      time_start: t.start_time ?? "",
-      time_end: t.end_time ?? "",
-    })),
-  }
-}
-
-// ─── Props ────────────────────────────────────────────────────────────────────
-
-type Props = {
-  open: boolean
-  onClose: () => void
-  clientUid: string
-  contractUid: string
-  contractType: EnumContractType
-  systemMode: EnumContractSystemMode
-  currency: string
-  clientName: string
-  siteName: string | null
-  existingDetails?: ContractDetailsRespModel
-}
-
-// ─── Shared input styles ──────────────────────────────────────────────────────
-
-const LABEL = "shrink-0 whitespace-nowrap text-sm text-text-1 font-medium"
-
-// ─── Component ────────────────────────────────────────────────────────────────
+import ContractFieldsGrid from "./ContractFieldsGrid"
+import TariffsTable from "./TariffsTable"
+import ContractDetailsReview from "./ContractDetailsReview"
 
 export default function ContractDetailsSheet({
   open,
@@ -228,7 +38,9 @@ export default function ContractDetailsSheet({
   clientName,
   siteName,
   existingDetails,
-}: Props) {
+}: ContractDetailsSheetProps) {
+  const [step, setStep] = useState<"form" | "review">("form")
+
   const combo = useMemo(
     () => getCombo(contractType, systemMode),
     [contractType, systemMode]
@@ -243,6 +55,7 @@ export default function ContractDetailsSheet({
     signing_date: "",
     billing_frequency: "",
     tariff_periods: "",
+    tariff_indexed_rule_type: "",
     commissioning_date: "",
     implementation_period: "",
     client_email: "",
@@ -268,6 +81,7 @@ export default function ContractDetailsSheet({
     handleSubmit,
     watch,
     reset,
+    getValues,
     formState: { errors },
   } = useForm<ContractDetailsValues>({
     resolver: zodResolver(schema) as any,
@@ -316,7 +130,6 @@ export default function ContractDetailsSheet({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tariffPeriods])
 
-  // Auto-compute contract end date (commissioning date + term years)
   const commissioningDate = watch("commissioning_date")
   const termYears = watch("term_years")
   const contractEnd = useMemo(() => {
@@ -326,7 +139,6 @@ export default function ContractDetailsSheet({
     return toDateStr(d)
   }, [commissioningDate, termYears])
 
-  // Auto-compute actual end date from actual commissioned date + term years
   const actualCommissionedAt = watch("actual_commissioned_at")
   const actualEnd = useMemo(() => {
     if (!actualCommissionedAt || !termYears) return ""
@@ -335,7 +147,6 @@ export default function ContractDetailsSheet({
     return toDateStr(d)
   }, [actualCommissionedAt, termYears])
 
-  // Auto-compute total
   const equipmentLease = watch("equipment_lease")
   const maintenance = watch("maintenance")
   const computedTotal = useMemo(() => {
@@ -354,13 +165,14 @@ export default function ContractDetailsSheet({
 
   const handleClose = () => {
     reset()
+    setStep("form")
     onClose()
   }
 
   const onSubmit = (values: ContractDetailsValues) => {
     const num = (v: string | undefined) => parseFloat(v ?? "0") || 0
     const int = (v: string | undefined) => parseInt(v ?? "0", 10) || 0
-    const dt = (d: string | undefined) => (d ? `${d}T00:00:00` : undefined)
+    const dt = (d: string | undefined) => (d ? toUtcIso(d) : undefined)
 
     const payload: ContractDetailsPayload = {}
     if (show("term_years")) payload.term_years = int(values.term_years)
@@ -369,10 +181,12 @@ export default function ContractDetailsSheet({
       payload.billing_frequency = values.billing_frequency
     if (show("tariff_periods"))
       payload.tariff_periods = int(values.tariff_periods)
+    if (show("tariff_indexed_rule_type") && values.tariff_indexed_rule_type)
+      payload.tariff_indexed_rule_type = values.tariff_indexed_rule_type
     if (show("commissioning_date"))
       payload.commissioned_at = dt(values.commissioning_date)
     if (show("contract_end") && contractEnd)
-      payload.end_at = `${contractEnd}T00:00:00`
+      payload.end_at = toUtcIso(contractEnd)
     if (show("implementation_period"))
       payload.implementation_period = int(values.implementation_period)
     if (show("grid_meter_reading"))
@@ -440,26 +254,55 @@ export default function ContractDetailsSheet({
             {/* ── Header ── */}
             <div className="border-border flex items-center justify-between border-b px-8 py-5">
               <p className="text-text-1 text-lg font-semibold">
-                {existingDetails
-                  ? "Edit Contract Details"
-                  : "New Contract Wizard"}
+                {step === "review"
+                  ? "Review Contract Details"
+                  : existingDetails
+                    ? "Edit Contract Details"
+                    : "New Contract Wizard"}
               </p>
-              <Button
-                type="button"
-                variant="primary"
-                size="md"
-                className="max-w-[140px] gap-2 rounded-sm"
-                onClick={handleSubmit(onSubmit, () =>
-                  toast.error("Please fill all required fields.")
-                )}
-                disabled={mutation.isPending}
-              >
-                {mutation.isPending ? "Saving…" : "Next"}
-                <ArrowRight className="h-4 w-4" />
-              </Button>
+
+              {step === "form" ? (
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="md"
+                  className="max-w-32 gap-2 rounded-sm"
+                  onClick={handleSubmit(
+                    () => setStep("review"),
+                    () => toast.error("Please fill all required fields.")
+                  )}
+                >
+                  Review
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              ) : (
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outlined"
+                    size="md"
+                    className="gap-2 rounded-sm"
+                    onClick={() => setStep("form")}
+                    disabled={mutation.isPending}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Back
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="md"
+                    className="gap-2 rounded-sm"
+                    onClick={() => onSubmit(getValues())}
+                    disabled={mutation.isPending}
+                  >
+                    <CheckCircle className="h-4 w-4" />
+                    {mutation.isPending ? "Saving…" : "Confirm & Submit"}
+                  </Button>
+                </div>
+              )}
             </div>
 
-            {/* ── Summary ── */}
             <ContractSummaryBar
               clientName={clientName}
               siteName={siteName}
@@ -469,576 +312,42 @@ export default function ContractDetailsSheet({
               currency={currency}
             />
 
-            {/* ── Form ── */}
             <form
               onSubmit={(e) => e.preventDefault()}
               className="space-y-6 px-8 py-6"
             >
-              {/* 3-column field grid */}
-              <div className="grid grid-cols-[400px_350px_350px] gap-x-12 gap-y-5">
-                {/* Term Years */}
-                {show("term_years") && (
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-3">
-                      <label className={LABEL}>Term years</label>
-                      <Input
-                        type="number"
-                        min={1}
-                        className="border-input border bg-white"
-                        placeholder="10"
-                        {...register("term_years")}
-                      />
-                    </div>
-                    {errors.term_years && (
-                      <p className="text-destructive text-xs">
-                        {errors.term_years.message}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* Contract Signing Date */}
-                {show("signing_date") && (
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-3">
-                      <label className={LABEL}>Contract Signing Date</label>
-                      <Controller
-                        name="signing_date"
-                        control={control}
-                        render={({ field }) => (
-                          <DatePickerInput
-                            value={
-                              field.value ? localDate(field.value) : undefined
-                            }
-                            onChange={(d) =>
-                              field.onChange(d ? toDateStr(d) : "")
-                            }
-                            className="flex-1"
-                          />
-                        )}
-                      />
-                    </div>
-                    {errors.signing_date && (
-                      <p className="text-destructive text-xs">
-                        {errors.signing_date.message}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* Billing Frequency */}
-                {show("billing_frequency") && (
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-3">
-                      <label className={LABEL}>Billing Frequency</label>
-                      <Controller
-                        name="billing_frequency"
-                        control={control}
-                        render={({ field }) => (
-                          <Select
-                            value={field.value}
-                            onValueChange={field.onChange}
-                          >
-                            <SelectTrigger className="w-full bg-white font-normal">
-                              <SelectValue placeholder="Select" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {BILLING_FREQUENCY_OPTIONS.map((opt) => (
-                                <SelectItem key={opt.value} value={opt.value}>
-                                  {opt.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        )}
-                      />
-                    </div>
-                    {errors.billing_frequency && (
-                      <p className="text-destructive text-xs">
-                        {errors.billing_frequency.message}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* Tariff Periods */}
-                {show("tariff_periods") && (
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-3">
-                      <label className={LABEL}>Tariff Periods</label>
-                      <Controller
-                        name="tariff_periods"
-                        control={control}
-                        render={({ field }) => (
-                          <Select
-                            value={field.value}
-                            onValueChange={field.onChange}
-                          >
-                            <SelectTrigger className="w-full bg-white font-normal">
-                              <SelectValue placeholder="#" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {TARIFF_PERIOD_OPTIONS.map((opt) => (
-                                <SelectItem key={opt.value} value={opt.value}>
-                                  {opt.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        )}
-                      />
-                    </div>
-                    {errors.tariff_periods && (
-                      <p className="text-destructive text-xs">
-                        {errors.tariff_periods.message}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* Commissioning Date */}
-                {show("commissioning_date") && (
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-3">
-                      <label className={LABEL}>Commissioning Date</label>
-                      <Controller
-                        name="commissioning_date"
-                        control={control}
-                        render={({ field }) => (
-                          <DatePickerInput
-                            value={
-                              field.value ? localDate(field.value) : undefined
-                            }
-                            className="flex-1"
-                            onChange={(d) =>
-                              field.onChange(d ? toDateStr(d) : "")
-                            }
-                          />
-                        )}
-                      />
-                    </div>
-                    {errors.commissioning_date && (
-                      <p className="text-destructive text-xs">
-                        {errors.commissioning_date.message}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* Contract End (auto-calculated) */}
-                {show("contract_end") && (
-                  <div className="flex items-center gap-3">
-                    <label className={LABEL}>Contract End</label>
-                    <DatePickerInput
-                      value={contractEnd ? localDate(contractEnd) : undefined}
-                      className="flex-1"
-                      disabled
-                    />
-                  </div>
-                )}
-
-                {/* Actual Commissioned Date */}
-                {show("actual_commissioned_at") && (
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-3">
-                      <label className={LABEL}>
-                        Actual Commissioned Date{" "}
-                        <span className="text-muted-foreground font-normal">
-                          (optional)
-                        </span>
-                      </label>
-                      <Controller
-                        name="actual_commissioned_at"
-                        control={control}
-                        render={({ field }) => (
-                          <DatePickerInput
-                            value={
-                              field.value ? localDate(field.value) : undefined
-                            }
-                            className="flex-1"
-                            onChange={(d) =>
-                              field.onChange(d ? toDateStr(d) : "")
-                            }
-                          />
-                        )}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Actual End Date (auto-computed from actual commissioned + term years) */}
-                {show("actual_end_at") && (
-                  <div className="flex items-center gap-3">
-                    <label className={LABEL}>
-                      Actual End Date{" "}
-                      <span className="text-muted-foreground font-normal">
-                        (optional)
-                      </span>
-                    </label>
-                    <DatePickerInput
-                      value={
-                        watch("actual_end_at")
-                          ? localDate(watch("actual_end_at")!)
-                          : actualEnd
-                            ? localDate(actualEnd)
-                            : undefined
-                      }
-                      className="flex-1"
-                      disabled
-                    />
-                  </div>
-                )}
-
-                {/* Implementation Period */}
-                {show("implementation_period") && (
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-3">
-                      <label className={LABEL}>Implementation Period</label>
-                      <Controller
-                        name="implementation_period"
-                        control={control}
-                        render={({ field }) => (
-                          <Select
-                            value={field.value}
-                            onValueChange={field.onChange}
-                          >
-                            <SelectTrigger className="w-full bg-white font-normal">
-                              <SelectValue placeholder="Select" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {IMPLEMENTATION_PERIOD_OPTIONS.map((opt) => (
-                                <SelectItem key={opt.value} value={opt.value}>
-                                  {opt.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        )}
-                      />
-                    </div>
-                    {errors.implementation_period && (
-                      <p className="text-destructive text-xs">
-                        {errors.implementation_period.message}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* Client Email */}
-                {show("client_email") && (
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-3">
-                      <label className={LABEL}>
-                        Client email{" "}
-                        <span className="opacity-60">(for invoice)</span>
-                      </label>
-                      <Input
-                        type="email"
-                        className="border-input flex-1 border bg-white"
-                        placeholder="billing@example.com"
-                        {...register("client_email")}
-                      />
-                    </div>
-                    {errors.client_email && (
-                      <p className="text-destructive text-xs">
-                        {errors.client_email.message}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* Grid Meter Reading */}
-                {show("grid_meter_reading") && (
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-3">
-                      <label className={LABEL}>
-                        Grid Meter Reading at Commissioning
-                      </label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        className="border-input border bg-white"
-                        placeholder="0.00"
-                        {...register("grid_meter_reading")}
-                      />
-                    </div>
-                    {errors.grid_meter_reading && (
-                      <p className="text-destructive text-xs">
-                        {errors.grid_meter_reading.message}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* System Size kWp */}
-                {show("system_size_kwp") && (
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-3">
-                      <label className={LABEL}>System Size (kWp)</label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        className="border-input border bg-white"
-                        placeholder="0.00"
-                        {...register("system_size_kwp")}
-                      />
-                    </div>
-                    {errors.system_size_kwp && (
-                      <p className="text-destructive text-xs">
-                        {errors.system_size_kwp.message}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* Guaranteed Production */}
-                {show("guaranteed_production") && (
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-3">
-                      <label className={LABEL}>
-                        Guaranteed Production (kWh/kWp)
-                      </label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        className="border-input border bg-white"
-                        placeholder="0.00"
-                        {...register("guaranteed_production")}
-                      />
-                    </div>
-                    {errors.guaranteed_production && (
-                      <p className="text-destructive text-xs">
-                        {errors.guaranteed_production.message}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* Equipment Lease */}
-                {show("equipment_lease") && (
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-3">
-                      <label className={LABEL}>Equipment Lease</label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        className="border-input border bg-white"
-                        placeholder="0.00"
-                        {...register("equipment_lease")}
-                      />
-                    </div>
-                    {errors.equipment_lease && (
-                      <p className="text-destructive text-xs">
-                        {errors.equipment_lease.message}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* Maintenance */}
-                {show("maintenance") && (
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-3">
-                      <label className={LABEL}>Maintenance</label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        className="border-input border bg-white"
-                        placeholder="0.00"
-                        {...register("maintenance")}
-                      />
-                    </div>
-                    {errors.maintenance && (
-                      <p className="text-destructive text-xs">
-                        {errors.maintenance.message}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* Total (auto-calculated) */}
-                {show("total") && (
-                  <div className="flex items-center gap-3">
-                    <label className={LABEL}>Total</label>
-                    <Input
-                      type="text"
-                      className="bg-muted/40 border-input border"
-                      value={computedTotal || "0.00"}
-                      disabled
-                      readOnly
-                    />
-                  </div>
-                )}
-
-                {/* Solar Production this Month */}
-                {show("solar_production_month") && (
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-3">
-                      <label className={LABEL}>
-                        Solar Production this Month
-                      </label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        className="border-input border bg-white"
-                        placeholder="0.00"
-                        {...register("solar_production_month")}
-                      />
-                    </div>
-                    {errors.solar_production_month && (
-                      <p className="text-destructive text-xs">
-                        {errors.solar_production_month.message}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* Estimated Utility */}
-                {show("estimated_utility") && (
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-3">
-                      <label className={LABEL}>Estimated Utility</label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        className="border-input border bg-white"
-                        placeholder="0.00"
-                        {...register("estimated_utility")}
-                      />
-                    </div>
-                    {errors.estimated_utility && (
-                      <p className="text-destructive text-xs">
-                        {errors.estimated_utility.message}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* Monthly Baseline Consumption */}
-                {show("monthly_baseline_consumption") && (
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-3">
-                      <label className={LABEL}>
-                        Monthly Baseline Consumption (kWh)
-                      </label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        className="border-input border bg-white"
-                        placeholder="0.00"
-                        {...register("monthly_baseline_consumption")}
-                      />
-                    </div>
-                    {errors.monthly_baseline_consumption && (
-                      <p className="text-destructive text-xs">
-                        {errors.monthly_baseline_consumption.message}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* Minimum Monthly Consumption */}
-                {show("minimum_consumption_monthly") && (
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-3">
-                      <label className={LABEL}>
-                        Minimum Monthly Consumption (kWh)
-                      </label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        className="border-input border bg-white"
-                        placeholder="0.00"
-                        {...register("minimum_consumption_monthly")}
-                      />
-                    </div>
-                    {errors.minimum_consumption_monthly && (
-                      <p className="text-destructive text-xs">
-                        {errors.minimum_consumption_monthly.message}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* Minimum Spend */}
-                {show("minimum_spend") && (
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-3">
-                      <label className={LABEL}>Minimum Spend</label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        className="border-input border bg-white"
-                        placeholder="0.00"
-                        {...register("minimum_spend")}
-                      />
-                    </div>
-                    {errors.minimum_spend && (
-                      <p className="text-destructive text-xs">
-                        {errors.minimum_spend.message}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* ── Tariffs Table ── */}
-              {show("tariffs_table") && (
-                <div className="border-border mt-5 overflow-hidden rounded-lg border">
-                  {/* Table header */}
-                  <div className="bg-blue/40 grid grid-cols-[200px_1fr_180px] px-4 py-2.5 text-xs font-semibold text-[#2C6B6B]">
-                    <span>Tariffs</span>
-                    <span>Type</span>
-                    <span>Rate/%</span>
-                  </div>
-
-                  {fields.length === 0 ? (
-                    <div className="text-muted-foreground bg-white px-4 py-6 text-center text-sm">
-                      Select tariff periods above to generate rows.
-                    </div>
-                  ) : (
-                    fields.map((field, index) => (
-                      <div
-                        key={field.id}
-                        className="border-border grid grid-cols-[200px_1fr_180px] items-center gap-3 border-t bg-white px-4 py-2.5"
-                      >
-                        {/* Label — e.g. "Tariff 1/A" */}
-                        <span className="text-foreground text-sm font-medium">
-                          Tariff {field.period_number}/{field.slot}
-                        </span>
-
-                        {/* Slot Type */}
-                        <Controller
-                          name={`tariffs.${index}.slot_type`}
-                          control={control}
-                          render={({ field: f }) => (
-                            <Select value={f.value} onValueChange={f.onChange}>
-                              <SelectTrigger className="h-9 bg-white text-xs font-normal">
-                                <SelectValue placeholder="Type" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {TARIFF_SLOT_TYPE_OPTIONS.map((opt) => (
-                                  <SelectItem key={opt.value} value={opt.value}>
-                                    {opt.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          )}
-                        />
-
-                        {/* Rate */}
-                        <Input
-                          type="number"
-                          step="0.01"
-                          className="border-input h-9 border bg-white text-sm"
-                          placeholder="0.00"
-                          {...register(`tariffs.${index}.rate`)}
-                        />
-                      </div>
-                    ))
-                  )}
-                </div>
+              {step === "form" ? (
+                <>
+                  <ContractFieldsGrid
+                    show={show}
+                    register={register}
+                    control={control}
+                    errors={errors}
+                    watch={watch}
+                    contractEnd={contractEnd}
+                    actualEnd={actualEnd}
+                    computedTotal={computedTotal}
+                  />
+                  <TariffsTable
+                    show={show}
+                    fields={fields}
+                    control={control}
+                    register={register}
+                  />
+                </>
+              ) : (
+                <ContractDetailsReview
+                  values={getValues()}
+                  show={show}
+                  contractEnd={contractEnd}
+                  actualEnd={actualEnd}
+                  computedTotal={computedTotal}
+                  currency={currency}
+                  contractTypeLabel={contractTypeLabel}
+                  systemModeLabel={systemModeLabel}
+                  siteName={siteName}
+                  clientName={clientName}
+                />
               )}
             </form>
           </div>

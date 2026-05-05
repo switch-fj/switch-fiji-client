@@ -85,7 +85,7 @@ export const VIS = {
     lease_on_grid: true,
   },
   estimated_utility: {
-    ppa_off_grid: true,
+    ppa_off_grid: false,
     ppa_on_grid: true,
     lease_on_grid: true,
   },
@@ -100,6 +100,11 @@ export const VIS = {
     lease_on_grid: false,
   },
   minimum_spend: {
+    ppa_off_grid: true,
+    ppa_on_grid: true,
+    lease_on_grid: false,
+  },
+  tariff_indexed_rule_type: {
     ppa_off_grid: true,
     ppa_on_grid: true,
     lease_on_grid: false,
@@ -144,4 +149,9 @@ export const IMPLEMENTATION_PERIOD_OPTIONS = [
 export const TARIFF_SLOT_TYPE_OPTIONS = [
   { label: "Fixed", value: "Fixed" },
   { label: "Variable", value: "Variable" },
+]
+
+export const TARIFF_INDEXED_RULE_TYPE_OPTIONS = [
+  { label: "EFL Linked", value: "EFL_LINKED" },
+  { label: "Fixed Annual Escalator", value: "FIXED_ANNUAL_ESCALATOR" },
 ]
