@@ -59,7 +59,9 @@ export default function ContractDetailsSheet({
     commissioning_date: "",
     implementation_period: "",
     client_email: "",
-    grid_meter_reading: "",
+    grid_meter_reading_kwh: "",
+    grid_meter_reading_kvar: "",
+    with_battery: "",
     system_size_kwp: "",
     guaranteed_production: "",
     equipment_lease: "",
@@ -105,6 +107,7 @@ export default function ContractDetailsSheet({
   // Auto-generate tariff rows whenever tariff period count changes.
   // Skip when the change comes from a pre-fill reset so we don't wipe existing rows.
   const tariffPeriods = watch("tariff_periods")
+  const withBattery = watch("with_battery")
   useEffect(() => {
     if (skipTariffReplace.current) {
       skipTariffReplace.current = false
@@ -115,9 +118,10 @@ export default function ContractDetailsSheet({
       replace([])
       return
     }
+    const slotNames = withBattery === "no" ? ["Solar", "Utility"] : ["A", "B"]
     replace(
       Array.from({ length: count }, (_, p) =>
-        (["A", "B"] as const).map((slot) => ({
+        slotNames.map((slot) => ({
           period_number: String(p + 1),
           slot,
           slot_type: "",
@@ -128,7 +132,7 @@ export default function ContractDetailsSheet({
       ).flat()
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tariffPeriods])
+  }, [tariffPeriods, withBattery])
 
   const commissioningDate = watch("commissioning_date")
   const termYears = watch("term_years")
@@ -189,10 +193,16 @@ export default function ContractDetailsSheet({
       payload.end_at = toUtcIso(contractEnd)
     if (show("implementation_period"))
       payload.implementation_period = int(values.implementation_period)
-    if (show("grid_meter_reading"))
-      payload.grid_meter_reading_at_commissioning = num(
-        values.grid_meter_reading
+    if (show("grid_meter_reading_kwh"))
+      payload.grid_meter_reading_at_commissioning_kwh = num(
+        values.grid_meter_reading_kwh
       )
+    if (show("grid_meter_reading_kvar"))
+      payload.grid_meter_reading_at_commissioning_kvar = num(
+        values.grid_meter_reading_kvar
+      )
+    if (show("with_battery") && values.with_battery)
+      payload.with_battery = values.with_battery
     if (show("system_size_kwp"))
       payload.system_size_kwp = num(values.system_size_kwp)
     if (show("guaranteed_production"))
@@ -225,12 +235,20 @@ export default function ContractDetailsSheet({
     const resolvedActualEnd = values.actual_end_at || actualEnd
     if (resolvedActualEnd) payload.actual_end_at = dt(resolvedActualEnd)
     if (show("tariffs_table")) {
-      payload.tariffs = values.tariffs.map((t) => ({
+      const isNoBattery = values.with_battery === "no"
+      const tariffRows = values.tariffs.map((t) => ({
         period_number: parseInt(t.period_number, 10),
         slot: t.slot,
         slot_type: t.slot_type,
         rate: num(t.rate),
+        start_time: t.time_start ?? "",
+        end_time: t.time_end ?? "",
       }))
+      if (isNoBattery) {
+        payload.ppa_on_grid_no_battery_tariffs = tariffRows
+      } else {
+        payload.tariffs = tariffRows
+      }
     }
 
     mutation.mutate(payload, {

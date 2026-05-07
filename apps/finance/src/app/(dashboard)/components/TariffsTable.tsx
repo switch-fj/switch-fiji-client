@@ -24,6 +24,18 @@ type Props = {
   register: UseFormRegister<ContractDetailsValues>
 }
 
+function tariffLabel(slot: string, slotType?: string): string {
+  const nameMap: Record<string, string> = {
+    A: "Solar Hours",
+    B: "Non-Solar Hours",
+    Solar: "Solar Hours",
+    Utility: "Utility Hours",
+  }
+  const name = nameMap[slot] ?? slot
+  const type = slotType === "Variable" ? "Indexed" : slotType
+  return type ? `${name} (${type})` : name
+}
+
 export default function TariffsTable({
   show,
   fields,
@@ -55,7 +67,7 @@ export default function TariffsTable({
               className="border-border grid grid-cols-[200px_1fr_180px] items-center gap-3 border-t bg-white px-4 py-2.5"
             >
               <span className="text-foreground text-sm font-medium">
-                Tariff {field.period_number}/{field.slot}
+                {tariffLabel(field.slot, tariffValues?.[index]?.slot_type)}
               </span>
 
               <Controller

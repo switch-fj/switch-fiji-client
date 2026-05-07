@@ -54,9 +54,17 @@ function TariffRow({ t }: { t: TariffRespModel }) {
   const time =
     t.start_time && t.end_time ? `${t.start_time} - ${t.end_time}` : "—"
   return (
-    <div className="border-border grid grid-cols-[100px_100px_1fr] items-center bg-white px-4 py-2.5 text-xs">
+    <div className="border-border grid grid-cols-[240px_100px_1fr] items-center bg-white px-4 py-2.5 text-xs">
       <span className="text-text-1 font-medium">
-        Tariff {t.period_number}/{t.slot}
+        {(
+          {
+            A: "Solar Hours",
+            B: "Non-Solar Hours",
+            Solar: "Solar Hours",
+            Utility: "Utility Hours",
+          } as Record<string, string>
+        )[t.slot] ?? t.slot}{" "}
+        ({t.slot_type === "Variable" ? "Indexed" : t.slot_type || "—"})
       </span>
       <span
         className={
@@ -247,11 +255,34 @@ export default function ViewContractSheet({
                             value={d.billing_frequency ?? "—"}
                           />
                         )}
-                        {show("grid_meter_reading") && (
+                        {show("grid_meter_reading_kwh") && (
                           <FieldRow
-                            label="Grid Meter reading at Commissioning"
-                            value={d.grid_meter_reading_at_commissioning ?? "—"}
-                            muted={!d.grid_meter_reading_at_commissioning}
+                            label="Grid Meter Reading at Commissioning (kWh)"
+                            value={
+                              d.grid_meter_reading_at_commissioning_kwh ?? "—"
+                            }
+                            muted={!d.grid_meter_reading_at_commissioning_kwh}
+                          />
+                        )}
+                        {show("grid_meter_reading_kvar") && (
+                          <FieldRow
+                            label="Grid Meter Reading at Commissioning (kVAR)"
+                            value={
+                              d.grid_meter_reading_at_commissioning_kvar ?? "—"
+                            }
+                            muted={!d.grid_meter_reading_at_commissioning_kvar}
+                          />
+                        )}
+                        {show("with_battery") && (
+                          <FieldRow
+                            label="With Battery"
+                            value={
+                              d.with_battery === "yes"
+                                ? "Yes"
+                                : d.with_battery === "no"
+                                  ? "No"
+                                  : "—"
+                            }
                           />
                         )}
                         {show("guaranteed_production") && (
@@ -282,17 +313,19 @@ export default function ViewContractSheet({
                     {/* Tariffs table */}
                     {show("tariffs_table") &&
                       (() => {
+                        const isNoBattery = d.with_battery === "no"
+                        const raw = isNoBattery
+                          ? d.ppa_on_grid_no_battery_tariffs
+                          : d.tariff_slots
                         let slots: TariffRespModel[] = []
                         try {
-                          slots = d.tariff_slots
-                            ? JSON.parse(d.tariff_slots)
-                            : []
+                          slots = raw ? JSON.parse(raw) : []
                         } catch {
                           slots = []
                         }
                         return (
                           <div>
-                            <div className="bg-blue/40 text-text-1 grid grid-cols-[100px_100px_1fr] rounded-md px-4 py-2.5 text-sm font-semibold">
+                            <div className="bg-blue/40 text-text-1 grid grid-cols-[240px_100px_1fr] rounded-md px-4 py-2.5 text-sm font-semibold">
                               <span>Tariffs</span>
                               <span>Rate/%</span>
                               <span>Time</span>

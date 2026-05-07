@@ -57,10 +57,20 @@ export const VIS = {
     ppa_on_grid: false,
     lease_on_grid: false,
   },
-  grid_meter_reading: {
+  grid_meter_reading_kwh: {
     ppa_off_grid: false,
     ppa_on_grid: true,
-    lease_on_grid: true,
+    lease_on_grid: false,
+  },
+  grid_meter_reading_kvar: {
+    ppa_off_grid: false,
+    ppa_on_grid: true,
+    lease_on_grid: false,
+  },
+  with_battery: {
+    ppa_off_grid: false,
+    ppa_on_grid: true,
+    lease_on_grid: false,
   },
   system_size_kwp: {
     ppa_off_grid: false,
@@ -134,6 +144,7 @@ export const BILLING_FREQUENCY_OPTIONS = Object.values(
 }))
 
 export const TARIFF_PERIOD_OPTIONS = [
+  { label: "1", value: "1" },
   { label: "2", value: "2" },
   { label: "3", value: "3" },
   { label: "4", value: "4" },
@@ -148,10 +159,15 @@ export const IMPLEMENTATION_PERIOD_OPTIONS = [
 
 export const TARIFF_SLOT_TYPE_OPTIONS = [
   { label: "Fixed", value: "Fixed" },
-  { label: "Variable", value: "Variable" },
+  { label: "Indexed", value: "Variable" },
 ]
 
 export const TARIFF_INDEXED_RULE_TYPE_OPTIONS = [
   { label: "EFL Linked", value: "EFL_LINKED" },
   { label: "Fixed Annual Escalator", value: "FIXED_ANNUAL_ESCALATOR" },
+]
+
+export const WITH_BATTERY_OPTIONS = [
+  { label: "Yes", value: "yes" },
+  { label: "No", value: "no" },
 ]

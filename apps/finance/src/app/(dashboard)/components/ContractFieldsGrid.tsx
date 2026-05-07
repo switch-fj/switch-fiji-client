@@ -22,6 +22,7 @@ import {
   TARIFF_PERIOD_OPTIONS,
   IMPLEMENTATION_PERIOD_OPTIONS,
   TARIFF_INDEXED_RULE_TYPE_OPTIONS,
+  WITH_BATTERY_OPTIONS,
 } from "@/constants/contract"
 import { localDate, toDateStr } from "@/constants/contractDetails"
 import type { ContractDetailsValues } from "@/constants/contractDetails"
@@ -321,23 +322,73 @@ export default function ContractFieldsGrid({
         </div>
       )}
 
-      {show("grid_meter_reading") && (
+      {show("grid_meter_reading_kwh") && (
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-3">
-            <label className={LABEL}>Grid Meter Reading at Commissioning</label>
+            <label className={LABEL}>
+              Grid Meter Reading at Commissioning (kWh)
+            </label>
             <Input
               type="number"
               step="0.01"
               className="border-input border bg-white"
               placeholder="0.00"
-              {...register("grid_meter_reading")}
+              {...register("grid_meter_reading_kwh")}
             />
           </div>
-          {errors.grid_meter_reading && (
+          {errors.grid_meter_reading_kwh && (
             <p className="text-destructive text-xs">
-              {errors.grid_meter_reading.message}
+              {errors.grid_meter_reading_kwh.message}
             </p>
           )}
+        </div>
+      )}
+
+      {show("grid_meter_reading_kvar") && (
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-3">
+            <label className={LABEL}>
+              Grid Meter Reading at Commissioning (kVAR)
+            </label>
+            <Input
+              type="number"
+              step="0.01"
+              className="border-input border bg-white"
+              placeholder="0.00"
+              {...register("grid_meter_reading_kvar")}
+            />
+          </div>
+          {errors.grid_meter_reading_kvar && (
+            <p className="text-destructive text-xs">
+              {errors.grid_meter_reading_kvar.message}
+            </p>
+          )}
+        </div>
+      )}
+
+      {show("with_battery") && (
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-3">
+            <label className={LABEL}>With Battery</label>
+            <Controller
+              name="with_battery"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger className="w-full bg-white font-normal">
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {WITH_BATTERY_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </div>
         </div>
       )}
 
