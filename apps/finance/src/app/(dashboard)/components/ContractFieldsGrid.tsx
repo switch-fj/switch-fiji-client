@@ -27,7 +27,7 @@ import {
 import { localDate, toDateStr } from "@/constants/contractDetails"
 import type { ContractDetailsValues } from "@/constants/contractDetails"
 
-const LABEL = "shrink-0 whitespace-nowrap text-sm text-text-1 font-medium"
+const LABEL = "shrink-0 w-[160px] text-sm text-text-1 font-medium leading-snug"
 
 type Props = {
   show: (field: keyof typeof VIS) => boolean

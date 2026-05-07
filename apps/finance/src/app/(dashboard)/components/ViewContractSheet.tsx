@@ -27,7 +27,7 @@ const VALUE_MUTED = "text-xs font-medium"
 function fmt(val: string | null | undefined) {
   if (!val) return "—"
   try {
-    return format(new Date(val), "M/d/yyyy")
+    return format(new Date(val), "d, MMM yyyy")
   } catch {
     return val
   }
@@ -217,6 +217,19 @@ export default function ViewContractSheet({
                             value={d.tariff_periods ?? "—"}
                           />
                         )}
+                        {show("tariff_indexed_rule_type") && (
+                          <FieldRow
+                            label="Tariff Rule Type"
+                            value={
+                              d.tariff_indexed_rule_type === "EFL_LINKED"
+                                ? "EFL Linked"
+                                : d.tariff_indexed_rule_type ===
+                                    "FIXED_ANNUAL_ESCALATOR"
+                                  ? "Fixed Annual Escalator"
+                                  : (d.tariff_indexed_rule_type ?? "—")
+                            }
+                          />
+                        )}
                         {show("implementation_period") && (
                           <FieldRow
                             label="Implementation Period"
@@ -243,6 +256,24 @@ export default function ViewContractSheet({
                           <FieldRow
                             label="Contract End"
                             value={fmt(d.end_at)}
+                          />
+                        )}
+                        {show("actual_commissioned_at") && (
+                          <FieldRow
+                            label="Actual Commissioned Date"
+                            value={
+                              d.actual_commissioned_at
+                                ? fmt(d.actual_commissioned_at)
+                                : "—"
+                            }
+                            muted={!d.actual_commissioned_at}
+                          />
+                        )}
+                        {show("actual_end_at") && (
+                          <FieldRow
+                            label="Actual End Date"
+                            value={d.actual_end_at ? fmt(d.actual_end_at) : "—"}
+                            muted={!d.actual_end_at}
                           />
                         )}
                       </div>
@@ -283,6 +314,13 @@ export default function ViewContractSheet({
                                   ? "No"
                                   : "—"
                             }
+                          />
+                        )}
+                        {show("system_size_kwp") && (
+                          <FieldRow
+                            label="System Size (kWp)"
+                            value={d.system_size_kwp ?? "—"}
+                            muted={!d.system_size_kwp}
                           />
                         )}
                         {show("guaranteed_production") && (
