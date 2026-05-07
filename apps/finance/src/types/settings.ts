@@ -1,5 +1,25 @@
 import { z } from "zod"
 
+export type EFLRateHistoryRespModel = {
+  uid: string
+  created_at: string
+  contract_settings_uid: string
+  efl_standard_rate_kwh: string | null
+  effective_from: string
+  effective_to: string | null
+  created_by_uid: string | null
+}
+
+export type VATRateHistoryRespModel = {
+  uid: string
+  created_at: string
+  contract_settings_uid: string
+  vat_rate: number | null
+  effective_from: string
+  effective_to: string | null
+  created_by_uid: string | null
+}
+
 export type ContractSettingsRespModel = {
   vat_rate: number
   efl_standard_rate_kwh: string

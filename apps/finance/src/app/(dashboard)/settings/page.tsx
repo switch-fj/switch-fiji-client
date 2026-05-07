@@ -5,7 +5,7 @@ import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { CheckCircle } from "lucide-react"
 import { observer } from "mobx-react-lite"
-import { Button, Card, Input } from "@workspace/ui"
+import { Button, Input } from "@workspace/ui"
 import { useStore } from "@/store"
 import {
   CURRENCY_OPTIONS,
@@ -17,6 +17,10 @@ import {
   type ContractSettingsInput,
   type ContractSettingsRespModel,
 } from "@/types/settings"
+import FormField from "./FormField"
+import SettingsSelect from "./SettingsSelect"
+import NotificationRow from "./NotificationRow"
+import RateHistoryTable from "./RateHistoryTable"
 
 function toFormValues(s: ContractSettingsRespModel): ContractSettingsInput {
   return {
@@ -30,9 +34,6 @@ function toFormValues(s: ContractSettingsRespModel): ContractSettingsInput {
     date_format: s.date_format as "dmy" | "mdy",
   }
 }
-import FormField from "./FormField"
-import SettingsSelect from "./SettingsSelect"
-import NotificationRow from "./NotificationRow"
 
 const NOTIFICATION_FIELDS = [
   { name: "asset_performance" as const, label: "Asset performance" },
@@ -57,6 +58,7 @@ const SettingsPage = observer(() => {
 
   useEffect(() => {
     SettingsStore.fetchSettings()
+    SettingsStore.fetchHistory()
   }, [SettingsStore])
 
   useEffect(() => {
@@ -77,6 +79,7 @@ const SettingsPage = observer(() => {
     const ok = await SettingsStore.updateSettings(changed)
     if (ok && SettingsStore.settings) {
       reset(toFormValues(SettingsStore.settings))
+      SettingsStore.fetchHistory()
     }
   }
 
@@ -98,6 +101,20 @@ const SettingsPage = observer(() => {
 
   if (!SettingsStore.settings || !formReady) return null
 
+  const eflRows = (SettingsStore.eflHistory ?? []).map((r) => ({
+    uid: r.uid,
+    rate: r.efl_standard_rate_kwh,
+    effective_from: r.effective_from,
+    effective_to: r.effective_to,
+  }))
+
+  const vatRows = (SettingsStore.vatHistory ?? []).map((r) => ({
+    uid: r.uid,
+    rate: r.vat_rate,
+    effective_from: r.effective_from,
+    effective_to: r.effective_to,
+  }))
+
   return (
     <div className="mx-auto flex w-full flex-col gap-6">
       <div className="mx-auto flex max-w-xs flex-col items-center gap-1 pt-20 pb-10">
@@ -107,7 +124,7 @@ const SettingsPage = observer(() => {
         </p>
       </div>
 
-      <div className="b rounded-none p-8 shadow-none">
+      <div className="rounded-none p-8 shadow-none">
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="grid grid-cols-1 gap-10 md:grid-cols-3">
             <div className="border-r pr-10">
@@ -234,6 +251,31 @@ const SettingsPage = observer(() => {
             </Button>
           </div>
         </form>
+      </div>
+
+      {/* Rate history */}
+      <div className="border-t px-8 pb-10">
+        <div className="pt-8">
+          <h2 className="mb-6 text-lg font-semibold">Rate History</h2>
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+            <RateHistoryTable
+              title="EFL Rate History"
+              rows={eflRows}
+              rateLabel="Rate ($/kWh)"
+              formatRate={(r) =>
+                r != null ? `$${parseFloat(String(r)).toFixed(4)}` : "—"
+              }
+              isLoading={SettingsStore.isLoading.history}
+            />
+            <RateHistoryTable
+              title="VAT Rate History"
+              rows={vatRows}
+              rateLabel="Rate (%)"
+              formatRate={(r) => (r != null ? `${r}%` : "—")}
+              isLoading={SettingsStore.isLoading.history}
+            />
+          </div>
+        </div>
       </div>
     </div>
   )
