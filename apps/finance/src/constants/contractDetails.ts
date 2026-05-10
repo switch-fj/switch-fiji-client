@@ -30,7 +30,9 @@ export const ContractDetailsSchema = z.object({
   commissioning_date: z.string().optional(),
   implementation_period: z.string().optional(),
   client_email: z.string().optional(),
-  grid_meter_reading: z.string().optional(),
+  grid_meter_reading_kwh: z.string().optional(),
+  grid_meter_reading_kvar: z.string().optional(),
+  with_battery: z.string().optional(),
   system_size_kwp: z.string().optional(),
   guaranteed_production: z.string().optional(),
   equipment_lease: z.string().optional(),
@@ -74,10 +76,15 @@ export function makeDetailsSchema(combo: Combo | null) {
       combo && VIS.client_email[combo]
         ? z.string().min(1, "Client email is required").email("Invalid email")
         : opt,
-    grid_meter_reading: f(
-      "grid_meter_reading",
-      "Grid meter reading is required"
+    grid_meter_reading_kwh: f(
+      "grid_meter_reading_kwh",
+      "Grid meter reading (kWh) is required"
     ),
+    grid_meter_reading_kvar: f(
+      "grid_meter_reading_kvar",
+      "Grid meter reading (kVAR) is required"
+    ),
+    with_battery: opt,
     system_size_kwp: f("system_size_kwp", "System size is required"),
     guaranteed_production: f(
       "guaranteed_production",
@@ -126,10 +133,15 @@ export function detailsToDefaults(
     implementation_period:
       d.implementation_period != null ? String(d.implementation_period) : "",
     client_email: "",
-    grid_meter_reading:
-      d.grid_meter_reading_at_commissioning != null
-        ? String(d.grid_meter_reading_at_commissioning)
+    grid_meter_reading_kwh:
+      d.grid_meter_reading_at_commissioning_kwh != null
+        ? String(d.grid_meter_reading_at_commissioning_kwh)
         : "",
+    grid_meter_reading_kvar:
+      d.grid_meter_reading_at_commissioning_kvar != null
+        ? String(d.grid_meter_reading_at_commissioning_kvar)
+        : "",
+    with_battery: d.with_battery ?? "",
     system_size_kwp: d.system_size_kwp != null ? String(d.system_size_kwp) : "",
     guaranteed_production:
       d.guaranteed_production_kwh_per_kwp != null

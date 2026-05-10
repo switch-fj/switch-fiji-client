@@ -49,15 +49,20 @@ export default function ViewInvoiceSheet({
     null
   )
 
-  const { data: historyPage, isLoading: historyLoading } =
-    useGetInvoiceHistory(contractUid)
+  const {
+    data: historyData,
+    isLoading: historyLoading,
+    isFetchingNextPage: historyFetchingMore,
+    hasNextPage: historyHasMore,
+    fetchNextPage: historyFetchMore,
+  } = useGetInvoiceHistory(contractUid)
   const { data: invoice, isLoading: invoiceLoading } =
     useGetInvoice(selectedInvoiceUid)
   const { mutate: downloadPdf, isPending: isDownloading } =
     useDownloadInvoicePdf()
 
-  const dedupedHistory = historyPage
-    ? uniqueByInvoiceUid(historyPage.items)
+  const dedupedHistory = historyData
+    ? uniqueByInvoiceUid(historyData.pages.flatMap((p) => p.data?.items ?? []))
     : []
   const hasInvoice = !!invoice && !invoiceLoading
   const hasHistory = dedupedHistory.length > 0
@@ -336,6 +341,18 @@ export default function ViewInvoiceSheet({
                         </button>
                       )
                     })}
+                    {historyHasMore && (
+                      <button
+                        onClick={() => historyFetchMore()}
+                        disabled={historyFetchingMore}
+                        className="text-muted-foreground flex w-full items-center justify-center gap-2 py-3 text-xs font-medium transition-colors hover:bg-neutral-50 disabled:opacity-50"
+                      >
+                        {historyFetchingMore ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : null}
+                        {historyFetchingMore ? "Loading…" : "Load more"}
+                      </button>
+                    )}
                   </div>
                 )}
               </div>

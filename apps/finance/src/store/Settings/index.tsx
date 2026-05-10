@@ -5,33 +5,43 @@ import { toast } from "sonner"
 import {
   getContractSettings,
   updateContractSettings,
+  getEFLRateHistory,
+  getVATRateHistory,
 } from "@/requests/settings"
 import type {
   ContractSettingsRespModel,
   ContractSettingsUpdateInput,
+  EFLRateHistoryRespModel,
+  VATRateHistoryRespModel,
 } from "@/types/settings"
 import type { RootStore } from "@/store"
 
 const INIT_IS_LOADING = {
   fetch: false,
   update: false,
+  history: false,
 }
 
 class SettingsStore {
   rootStore: RootStore
   settings: ContractSettingsRespModel | null = null
+  eflHistory: EFLRateHistoryRespModel[] | null = null
+  vatHistory: VATRateHistoryRespModel[] | null = null
   isLoading = { ...INIT_IS_LOADING }
-  errors = { fetch: "", update: "" }
+  errors = { fetch: "", update: "", history: "" }
 
   constructor(rootStore: RootStore) {
     this.rootStore = rootStore
 
     makeObservable(this, {
       settings: observable,
+      eflHistory: observable,
+      vatHistory: observable,
       isLoading: observable,
       errors: observable,
       fetchSettings: action.bound,
       updateSettings: action.bound,
+      fetchHistory: action.bound,
     })
   }
 
@@ -59,6 +69,34 @@ class SettingsStore {
     }
   }
 
+  async fetchHistory() {
+    if (this.eflHistory !== null && this.vatHistory !== null) return
+
+    this.isLoading.history = true
+    this.errors.history = ""
+
+    try {
+      const [efl, vat] = await Promise.all([
+        getEFLRateHistory(),
+        getVATRateHistory(),
+      ])
+      runInAction(() => {
+        this.eflHistory = efl.data
+        this.vatHistory = vat.data
+      })
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Failed to load rate history"
+      runInAction(() => {
+        this.errors.history = message
+      })
+    } finally {
+      runInAction(() => {
+        this.isLoading.history = false
+      })
+    }
+  }
+
   async updateSettings(payload: ContractSettingsUpdateInput): Promise<boolean> {
     this.isLoading.update = true
     this.errors.update = ""
@@ -68,6 +106,9 @@ class SettingsStore {
       const fresh = await getContractSettings()
       runInAction(() => {
         this.settings = fresh.data
+        // invalidate history so it re-fetches fresh rates after a save
+        this.eflHistory = null
+        this.vatHistory = null
       })
       toast.success("Settings saved successfully")
       return true

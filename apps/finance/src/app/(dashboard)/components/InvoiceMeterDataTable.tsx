@@ -1,7 +1,7 @@
-import type { InvoiceRespModel } from "@/types/invoice"
+import type { InvoiceDisplayModel } from "@/types/invoice"
 import { fmtAmount } from "@/utils/invoice"
 
-type Props = { invoice: InvoiceRespModel }
+type Props = { invoice: InvoiceDisplayModel }
 
 export default function InvoiceMeterDataTable({ invoice }: Props) {
   return (

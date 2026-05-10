@@ -35,9 +35,12 @@ export const INVOICE = {
   GET: (invoiceUid: string) => `/api/v1/invoice/${invoiceUid}`,
   HISTORY: (contractUid: string) => `/api/v1/invoice/history/${contractUid}`,
   PDF: (invoiceUid: string) => `/api/v1/invoice/${invoiceUid}/pdf`,
+  LIVE: (contractUid: string) => `/api/v1/invoice/live/${contractUid}`,
 } as const
 
 export const SETTINGS = {
-  GET: "/api/v1/admin/contracts-settings",
-  UPDATE: "/api/v1/admin/contracts-settings",
+  GET: "/api/v1/settings/contracts-settings",
+  UPDATE: "/api/v1/settings/contracts-settings",
+  EFL_HISTORY: "/api/v1/settings/efl-rate-history",
+  VAT_HISTORY: "/api/v1/settings/vat-rate-history",
 } as const

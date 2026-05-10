@@ -1,13 +1,22 @@
-import type { InvoiceRespModel } from "@/types/invoice"
+import type { InvoiceDisplayModel } from "@/types/invoice"
 import { fmtAmount } from "@/utils/invoice"
 
-type Props = { invoice: InvoiceRespModel }
+type Props = { invoice: InvoiceDisplayModel; hideUtilityLines?: boolean }
 
-export default function InvoiceLineItemsTable({ invoice }: Props) {
+export default function InvoiceLineItemsTable({
+  invoice,
+  hideUtilityLines,
+}: Props) {
+  const lineItems = hideUtilityLines
+    ? invoice.line_items.filter((row) => row.tariff_slot !== "Utility")
+    : invoice.line_items
   const subtotal = parseFloat(invoice.subtotal)
-  const vatRate = parseFloat(invoice.vat_rate)
-  const vatAmount = subtotal * vatRate
-  const total = subtotal + vatAmount
+  const vatAmount =
+    invoice.vat_amount != null
+      ? parseFloat(invoice.vat_amount)
+      : subtotal * parseFloat(invoice.vat_rate)
+  const total =
+    invoice.total != null ? parseFloat(invoice.total) : subtotal + vatAmount
 
   return (
     <div className="overflow-hidden rounded-md border-none">
@@ -21,7 +30,7 @@ export default function InvoiceLineItemsTable({ invoice }: Props) {
           </tr>
         </thead>
         <tbody>
-          {invoice.line_items.map((row, i) => (
+          {lineItems.map((row, i) => (
             <tr
               key={row.uid}
               className={i % 2 === 1 ? "bg-neutral-50" : "bg-white"}
@@ -35,7 +44,9 @@ export default function InvoiceLineItemsTable({ invoice }: Props) {
               <td className="px-4 py-3 text-left">
                 {row.tariff_rate != null ? fmtAmount(row.tariff_rate) : "—"}
               </td>
-              <td className="px-4 py-3 text-left">{fmtAmount(row.amount)}</td>
+              <td className="px-4 py-3 text-left">
+                {row.amount != null ? fmtAmount(row.amount) : "—"}
+              </td>
             </tr>
           ))}
         </tbody>

@@ -32,6 +32,15 @@ export type TariffRowPayload = {
   rate: number
 }
 
+export type NoBatteryTariffRowPayload = {
+  period_number: number
+  slot: string
+  slot_type: string
+  rate: number
+  start_time: string
+  end_time: string
+}
+
 export type ContractDetailsPayload = {
   term_years?: number
   signed_at?: string
@@ -43,7 +52,9 @@ export type ContractDetailsPayload = {
   implementation_period?: number
   system_size_kwp?: number
   guaranteed_production_kwh_per_kwp?: number
-  grid_meter_reading_at_commissioning?: number
+  grid_meter_reading_at_commissioning_kwh?: number
+  grid_meter_reading_at_commissioning_kvar?: number
+  with_battery?: string
   equipment_lease_amount?: number
   maintenance_amount?: number
   total?: number
@@ -54,6 +65,7 @@ export type ContractDetailsPayload = {
   tariff_periods?: number
   tariff_indexed_rule_type?: string
   tariffs?: TariffRowPayload[]
+  ppa_on_grid_no_battery_tariffs?: NoBatteryTariffRowPayload[]
 }
 
 export type ContractModel = {
@@ -94,7 +106,9 @@ export type ContractDetailsRespModel = {
   actual_end_at: string | null
   system_size_kwp: number | null
   guaranteed_production_kwh_per_kwp: number | null
-  grid_meter_reading_at_commissioning: number | null
+  grid_meter_reading_at_commissioning_kwh: number | null
+  grid_meter_reading_at_commissioning_kvar: number | null
+  with_battery: string | null
   equipment_lease_amount: string | null
   maintenance_amount: string | null
   total: string | null
@@ -105,6 +119,7 @@ export type ContractDetailsRespModel = {
   tariff_periods: number | null
   tariff_slots: string | null
   tariff_indexed_rule_type: string | null
+  ppa_on_grid_no_battery_tariffs: string | null
 }
 
 export type ContractDetailedRespModel = {

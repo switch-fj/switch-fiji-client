@@ -22,7 +22,7 @@ const VALUE = "text-sm text-text-1"
 
 function FieldRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-[220px_1fr] py-2.5">
+    <div className="grid grid-cols-[320px_1fr] py-2.5">
       <span className={LABEL}>{label}</span>
       <span className={VALUE}>{value || "—"}</span>
     </div>
@@ -145,10 +145,28 @@ export default function ContractDetailsReview({
               value={values.guaranteed_production}
             />
           )}
-          {show("grid_meter_reading") && (
+          {show("grid_meter_reading_kwh") && (
             <FieldRow
-              label="Grid Meter Reading at Commissioning"
-              value={values.grid_meter_reading}
+              label="Grid Meter Reading at Commissioning (kWh)"
+              value={values.grid_meter_reading_kwh}
+            />
+          )}
+          {show("grid_meter_reading_kvar") && (
+            <FieldRow
+              label="Grid Meter Reading at Commissioning (kVAR)"
+              value={values.grid_meter_reading_kvar}
+            />
+          )}
+          {show("with_battery") && (
+            <FieldRow
+              label="With Battery"
+              value={
+                values.with_battery === "yes"
+                  ? "Yes"
+                  : values.with_battery === "no"
+                    ? "No"
+                    : "—"
+              }
             />
           )}
         </div>
@@ -208,7 +226,15 @@ export default function ContractDetailsReview({
               className="border-border grid grid-cols-[180px_140px_140px] items-center border-t bg-white px-4 py-2.5 text-xs"
             >
               <span className="text-text-1 font-medium">
-                Tariff {t.period_number}/{t.slot}
+                {(
+                  {
+                    A: "Solar Hours",
+                    B: "Non-Solar Hours",
+                    Solar: "Solar Hours",
+                    Utility: "Utility Hours",
+                  } as Record<string, string>
+                )[t.slot] ?? t.slot}{" "}
+                ({t.slot_type === "Variable" ? "Indexed" : t.slot_type || "—"})
               </span>
               <span className="text-text-1">{t.slot_type || "—"}</span>
               <span
