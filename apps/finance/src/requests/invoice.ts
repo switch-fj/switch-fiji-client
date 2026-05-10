@@ -1,7 +1,11 @@
 import api from "@/lib/axios"
 import { INVOICE } from "@/constants/api"
 import type { ServerResponse } from "@/types/client"
-import type { InvoiceRespModel, InvoiceHistoryPage } from "@/types/invoice"
+import type {
+  InvoiceRespModel,
+  InvoiceHistoryPage,
+  InvoiceLivePage,
+} from "@/types/invoice"
 
 export const getInvoice = async (
   invoiceUid: string
@@ -13,10 +17,23 @@ export const getInvoice = async (
 }
 
 export const getInvoiceHistory = async (
-  contractUid: string
+  contractUid: string,
+  params: { offset?: number; limit?: number } = {}
 ): Promise<ServerResponse<InvoiceHistoryPage>> => {
   const { data } = await api.get<ServerResponse<InvoiceHistoryPage>>(
-    INVOICE.HISTORY(contractUid)
+    INVOICE.HISTORY(contractUid),
+    { params }
+  )
+  return data
+}
+
+export const getLiveInvoice = async (
+  contractUid: string,
+  params: { next_cursor?: string | null; limit?: number } = {}
+): Promise<ServerResponse<InvoiceLivePage>> => {
+  const { data } = await api.get<ServerResponse<InvoiceLivePage>>(
+    INVOICE.LIVE(contractUid),
+    { params: params.next_cursor ? params : { limit: params.limit } }
   )
   return data
 }

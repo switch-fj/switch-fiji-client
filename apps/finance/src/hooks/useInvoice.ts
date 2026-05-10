@@ -1,15 +1,17 @@
 "use client"
 
-import { useQuery, useMutation } from "@tanstack/react-query"
+import { useQuery, useInfiniteQuery, useMutation } from "@tanstack/react-query"
 import {
   getInvoice,
   getInvoiceHistory,
+  getLiveInvoice,
   downloadInvoicePdf,
 } from "@/requests/invoice"
 
 export const INVOICE_KEYS = {
   detail: (uid: string) => ["invoice", uid] as const,
   history: (contractUid: string) => ["invoice-history", contractUid] as const,
+  live: (contractUid: string) => ["invoice-live", contractUid] as const,
 }
 
 export const useGetInvoice = (invoiceUid: string | null) => {
@@ -22,10 +24,33 @@ export const useGetInvoice = (invoiceUid: string | null) => {
 }
 
 export const useGetInvoiceHistory = (contractUid: string | null) => {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: INVOICE_KEYS.history(contractUid ?? ""),
-    queryFn: () => getInvoiceHistory(contractUid!),
-    select: (res) => res.data,
+    queryFn: ({ pageParam }) =>
+      getInvoiceHistory(contractUid!, { offset: pageParam, limit: 20 }),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => {
+      const p = lastPage.data?.pagination
+      if (!p) return undefined
+      return p.current_page < p.total_pages
+        ? p.current_page * p.limit
+        : undefined
+    },
+    enabled: !!contractUid,
+  })
+}
+
+export const useGetLiveInvoice = (contractUid: string | null) => {
+  return useInfiniteQuery({
+    queryKey: INVOICE_KEYS.live(contractUid ?? ""),
+    queryFn: ({ pageParam }) =>
+      getLiveInvoice(contractUid!, {
+        next_cursor: pageParam ?? null,
+        limit: 30,
+      }),
+    initialPageParam: null as string | null,
+    getNextPageParam: (lastPage) =>
+      lastPage.data?.pagination?.next_cursor ?? undefined,
     enabled: !!contractUid,
   })
 }
