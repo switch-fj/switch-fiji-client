@@ -28,13 +28,12 @@ export const streamSiteStats = (
   onError: () => void
 ): (() => void) => {
   const controller = new AbortController()
+  const token = defaultAuthStorage.getToken()
+  const baseUrl = getApiBaseUrl().replace(/\/api\/v1\/?$/, "")
 
   const run = async () => {
     try {
-      const token = defaultAuthStorage.getToken()
-      const url = `${getApiBaseUrl()}${SITE.STATS_STREAM(siteUid)}`
-
-      const response = await fetch(url, {
+      const response = await fetch(`${baseUrl}${SITE.STATS_STREAM(siteUid)}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: "text/event-stream",
@@ -47,31 +46,28 @@ export const streamSiteStats = (
         return
       }
 
-      const reader = response.body!.getReader()
-      const decoder = new TextDecoder()
+      const reader = response
+        .body!.pipeThrough(new TextDecoderStream())
+        .getReader()
+      let buf = ""
 
-      while (true) {
+      for (;;) {
         const { done, value } = await reader.read()
         if (done) break
-
-        const chunk = decoder.decode(value, { stream: true })
-
-        for (const line of chunk.split("\n")) {
-          if (line.startsWith("data: ")) {
+        buf += value
+        const lines = buf.split("\n")
+        buf = lines.pop() ?? ""
+        for (const line of lines)
+          if (line.startsWith("data:"))
             try {
-              const parsed = JSON.parse(line.slice(6))
-              onData(parsed)
+              onData(JSON.parse(line.slice(5).trim()))
             } catch {}
-          }
-        }
       }
-    } catch (err: any) {
-      if (err.name !== "AbortError") onError()
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name !== "AbortError") onError()
     }
   }
 
   run()
-
-  // Return a cleanup function (replaces .close() from EventSource)
   return () => controller.abort()
 }

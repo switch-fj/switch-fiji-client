@@ -3,7 +3,7 @@
 import { Fragment, Suspense, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Button } from "@workspace/ui"
-import { Plus, Cpu, Radio } from "lucide-react"
+import { Plus, ExternalLink } from "lucide-react"
 import { useSites, useSiteStats } from "@/hooks/useSite"
 import type { ClientModel } from "@/types/client"
 import { EnumContractType, EnumContractSystemMode } from "@/constants/mangle"
@@ -30,6 +30,12 @@ const STAT_LABELS: Record<string, string> = {
   status: "Status",
 }
 
+const EXCLUDED_KEYS = new Set(["site_uid", "status"])
+
+const formatKey = (key: string) =>
+  STAT_LABELS[key] ??
+  key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+
 function SiteStatsGrid({ siteUid }: { siteUid: string }) {
   const { stats, error } = useSiteStats(siteUid)
 
@@ -42,7 +48,7 @@ function SiteStatsGrid({ siteUid }: { siteUid: string }) {
   }
 
   const entries = Object.entries(stats).filter(
-    ([, v]) => v !== null && v !== undefined
+    ([k, v]) => !EXCLUDED_KEYS.has(k) && v !== null && v !== undefined
   )
 
   if (entries.length === 0) {
@@ -53,7 +59,7 @@ function SiteStatsGrid({ siteUid }: { siteUid: string }) {
     <div className="grid grid-cols-[auto_auto] justify-start gap-x-6 gap-y-2">
       {entries.map(([key, value]) => (
         <Fragment key={key}>
-          <span>{STAT_LABELS[key] ?? key}</span>
+          <span>{formatKey(key)}</span>
           <span className="text-foreground font-mono font-semibold">
             {String(value)}
           </span>
@@ -202,80 +208,29 @@ function ClientSitesPanelInner({ client }: ClientSitesPanelProps) {
                 <div className="mx-4 rounded-md bg-neutral-100">
                   <div className="text-muted-foreground space-y-3 px-4 py-3 text-xs">
                     <SiteStatsGrid siteUid={site.uid} />
-
-                    <div className="grid grid-cols-2 gap-2 pt-1">
-                      <div className="flex items-center gap-2 rounded-md border bg-white px-3 py-2">
-                        <Radio className="text-primary h-4 w-4" />
-                        <div>
-                          <p className="text-muted-foreground text-[10px]">
-                            Gateway ID
-                          </p>
-                          <p className="text-foreground text-xs font-semibold">
-                            {site.gateway_id ?? "—"}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 rounded-md border bg-white px-3 py-2">
-                        <Cpu className="text-primary h-4 w-4" />
-                        <div>
-                          <p className="text-muted-foreground text-[10px]">
-                            Firmware
-                          </p>
-                          <p className="text-foreground text-xs font-semibold">
-                            {site.firmware ?? "—"}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
                   </div>
 
-                  <div className="flex max-w-md gap-2 border-t px-4 py-3">
+                  <div className="flex gap-2 border-t px-4 py-3">
                     <Button
-                      className="min-w-[140px] rounded-sm text-sm"
+                      className="max-w-34 gap-2 rounded-sm text-sm"
                       size="lg"
                       variant="primary"
                       onClick={() =>
-                        openSheet({
-                          sheet: "invoice",
-                          siteUid: site.uid,
-                          siteName: site.site_name ?? "",
-                          contractUid: site.contract?.uid ?? "",
-                        })
+                        router.push(
+                          `/sites/${site.uid}?` +
+                            new URLSearchParams({
+                              clientUid,
+                              clientName,
+                              clientEmail,
+                              siteName: site.site_name ?? "",
+                              contractUid: site.contract?.uid ?? "",
+                            }).toString()
+                        )
                       }
                     >
-                      View Invoice
+                      <ExternalLink className="h-4 w-4" />
+                      Open Site
                     </Button>
-                    {site.contract ? (
-                      <Button
-                        variant="outlined"
-                        className="min-w-[140px] rounded-sm text-sm"
-                        size="lg"
-                        onClick={() =>
-                          openSheet({
-                            sheet: "view",
-                            contractUid: site.contract!.uid,
-                            siteName: site.site_name ?? "",
-                          })
-                        }
-                      >
-                        View Site Contract
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="outlined"
-                        className="min-w-[140px] rounded-sm text-sm"
-                        size="lg"
-                        onClick={() =>
-                          openSheet({
-                            sheet: "create",
-                            siteUid: site.uid,
-                            siteName: site.site_name ?? "",
-                          })
-                        }
-                      >
-                        Create Contract
-                      </Button>
-                    )}
                   </div>
                 </div>
               </div>
