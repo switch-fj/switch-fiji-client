@@ -8,6 +8,7 @@ import ClientAccordion from "./components/ClientAccordion"
 import ClientSitesPanel from "./components/ClientSitesPanel"
 import AddClientModal from "./components/AddClientModal"
 import { useClients } from "@/hooks/useClient"
+import { usePortfolioStats } from "@/hooks/usePortfolio"
 
 function DashboardViewInner() {
   const [addClientOpen, setAddClientOpen] = useState(false)
@@ -20,6 +21,8 @@ function DashboardViewInner() {
 
   const { data, isLoading, isError } = useClients()
   const clients = data?.data?.items ?? []
+
+  const { data: portfolioData, isLoading: isLoadingStats } = usePortfolioStats()
 
   const activeClient = useMemo(
     () => clients.find((c) => c.uid === activeClientId),
@@ -34,8 +37,8 @@ function DashboardViewInner() {
   return (
     <div className="flex flex-col gap-6 p-6">
       <DashboardHeaders
-        totalCount={clients.length}
-        onAddClient={() => setAddClientOpen(true)}
+        portfolioStats={portfolioData?.data}
+        isLoadingStats={isLoadingStats}
       />
       <AddClientModal
         open={addClientOpen}
