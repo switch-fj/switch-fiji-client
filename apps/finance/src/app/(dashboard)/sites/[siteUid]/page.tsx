@@ -13,6 +13,8 @@ import {
 import { format } from "date-fns"
 import { Button, Skeleton } from "@workspace/ui"
 import { useGetContract } from "@/hooks/useContract"
+import { useClients } from "@/hooks/useClient"
+import { useSites } from "@/hooks/useSite"
 import {
   useGetInvoice,
   useGetInvoiceHistory,
@@ -777,10 +779,19 @@ function SitePageInner() {
   const { SettingsStore } = useStore()
 
   const clientUid = searchParams.get("clientUid") ?? ""
-  const clientName = searchParams.get("clientName") ?? ""
-  const clientEmail = searchParams.get("clientEmail") ?? ""
-  const siteName = searchParams.get("siteName") ?? ""
   const contractUid = searchParams.get("contractUid") ?? ""
+
+  const { data: clientsData } = useClients()
+  const clientInfo = (clientsData?.data?.items ?? []).find(
+    (c) => c.uid === clientUid
+  )
+  const clientName = clientInfo?.client_name ?? ""
+  const clientEmail = clientInfo?.client_email ?? ""
+
+  const { data: sitesData } = useSites(clientUid || undefined)
+  const siteName =
+    (sitesData?.data ?? []).find((s) => s.uid === params.siteUid)?.site_name ??
+    ""
 
   const [editOpen, setEditOpen] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
@@ -914,7 +925,11 @@ function SitePageInner() {
           ) => {
             setCreateOpen(false)
             router.replace(
-              `/sites/${params.siteUid}?clientUid=${encodeURIComponent(clientUid)}&clientName=${encodeURIComponent(clientName)}&clientEmail=${encodeURIComponent(clientEmail)}&siteName=${encodeURIComponent(siteName)}&contractUid=${encodeURIComponent(newContractUid)}`
+              `/sites/${params.siteUid}?` +
+                new URLSearchParams({
+                  clientUid,
+                  contractUid: newContractUid,
+                }).toString()
             )
           }}
         />

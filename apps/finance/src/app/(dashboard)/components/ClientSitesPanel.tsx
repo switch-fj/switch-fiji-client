@@ -36,6 +36,23 @@ const formatKey = (key: string) =>
   STAT_LABELS[key] ??
   key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
 
+const isIsoDate = (v: string) => /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(v)
+
+const formatStatValue = (v: string | number | null | undefined): string => {
+  if (typeof v !== "string" || !isIsoDate(v)) return String(v)
+  const d = new Date(v)
+  if (isNaN(d.getTime())) return v
+  return d.toLocaleString("en-GB", {
+    timeZone: "UTC",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZoneName: "short",
+  })
+}
+
 function SiteStatsGrid({ siteUid }: { siteUid: string }) {
   const { stats, error } = useSiteStats(siteUid)
 
@@ -61,7 +78,7 @@ function SiteStatsGrid({ siteUid }: { siteUid: string }) {
         <Fragment key={key}>
           <span>{formatKey(key)}</span>
           <span className="text-foreground font-mono font-semibold">
-            {String(value)}
+            {formatStatValue(value)}
           </span>
         </Fragment>
       ))}
@@ -220,10 +237,9 @@ function ClientSitesPanelInner({ client }: ClientSitesPanelProps) {
                           `/sites/${site.uid}?` +
                             new URLSearchParams({
                               clientUid,
-                              clientName,
-                              clientEmail,
-                              siteName: site.site_name ?? "",
-                              contractUid: site.contract?.uid ?? "",
+                              ...(site.contract?.uid
+                                ? { contractUid: site.contract.uid }
+                                : {}),
                             }).toString()
                         )
                       }
