@@ -551,8 +551,8 @@ function InvoiceSection({
       <div className="flex flex-col gap-4">
         {/* Live snapshots box */}
         {contractUid && (
-          <div className="overflow-hidden rounded-xl border bg-white">
-            <div className="flex items-center justify-between border-b px-4 py-4">
+          <div className="flex max-h-72 flex-col overflow-hidden rounded-xl border bg-white">
+            <div className="flex shrink-0 items-center justify-between border-b px-4 py-4">
               <span className="flex items-center gap-2 font-semibold">
                 <span className="h-2 w-2 rounded-full bg-green-500" />
                 Live
@@ -579,7 +579,7 @@ function InvoiceSection({
                 No live data yet
               </div>
             ) : (
-              <>
+              <div className="overflow-y-auto">
                 <div className="divide-y">
                   {dateGroups.map((group) => (
                     <div key={group.dateKey}>
@@ -634,7 +634,7 @@ function InvoiceSection({
                     {liveFetchingMore ? "Loading…" : "Load more"}
                   </button>
                 )}
-              </>
+              </div>
             )}
           </div>
         )}
