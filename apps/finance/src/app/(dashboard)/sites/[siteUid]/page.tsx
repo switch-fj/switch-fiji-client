@@ -405,7 +405,12 @@ function InvoiceSection({
       if (!seen.has(dateKey)) {
         const group: DateGroup = {
           dateKey,
-          label: format(d, "d MMM yyyy"),
+          label: format(
+            new Date(
+              Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
+            ),
+            "d MMM yyyy"
+          ),
           snapshots: [],
         }
         seen.set(dateKey, group)
@@ -584,14 +589,10 @@ function InvoiceSection({
                           isLive &&
                           (liveSnapshotUid === snap.uid ||
                             (!liveSnapshotUid && snap === allSnapshots[0]))
-                        const startTime = format(
-                          new Date(snap.period_start_at),
-                          "HH:mm"
-                        )
-                        const endTime = format(
-                          new Date(snap.period_end_at),
-                          "HH:mm"
-                        )
+                        const s = new Date(snap.period_start_at)
+                        const e = new Date(snap.period_end_at)
+                        const startTime = `${String(s.getUTCHours()).padStart(2, "0")}:${String(s.getUTCMinutes()).padStart(2, "0")}`
+                        const endTime = `${String(e.getUTCHours()).padStart(2, "0")}:${String(e.getUTCMinutes()).padStart(2, "0")}`
                         return (
                           <button
                             key={snap.uid}
