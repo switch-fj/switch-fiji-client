@@ -30,6 +30,9 @@ export type TariffRowPayload = {
   slot: string
   slot_type: string
   rate: number
+  start_time?: string
+  end_time?: string
+  duration_years?: number | null
 }
 
 export type NoBatteryTariffRowPayload = {
@@ -88,6 +91,7 @@ export type TariffRespModel = {
   rate: number
   start_time: string | null
   end_time: string | null
+  duration_years: number | null
 }
 
 export type ContractDetailsRespModel = {

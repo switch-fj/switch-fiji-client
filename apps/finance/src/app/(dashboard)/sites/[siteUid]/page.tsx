@@ -67,17 +67,24 @@ function FieldRow({
   )
 }
 
-function TariffRow({ t }: { t: TariffRespModel }) {
+function TariffRow({
+  t,
+  showDuration,
+}: {
+  t: TariffRespModel
+  showDuration: boolean
+}) {
   const slotLabel: Record<string, string> = {
     A: "Solar Hours",
     B: "Non-Solar Hours",
     Solar: "Solar Hours",
     Utility: "Utility Hours",
   }
-  const time =
-    t.start_time && t.end_time ? `${t.start_time} – ${t.end_time}` : "—"
+  const cols = showDuration
+    ? "grid-cols-[1fr_80px_90px_90px_80px]"
+    : "grid-cols-[1fr_80px_90px_90px]"
   return (
-    <div className="grid grid-cols-[1fr_80px_120px] items-center bg-white px-4 py-2 text-xs">
+    <div className={`grid ${cols} items-center bg-white px-4 py-2 text-xs`}>
       <span className="text-text-1 font-medium">
         {slotLabel[t.slot] ?? t.slot} (
         {t.slot_type === "Variable" ? "Indexed" : t.slot_type || "—"})
@@ -89,7 +96,11 @@ function TariffRow({ t }: { t: TariffRespModel }) {
       >
         {t.rate}
       </span>
-      <span className="text-text-1">{time}</span>
+      <span className="text-text-1">{t.start_time ?? "—"}</span>
+      <span className="text-text-1">{t.end_time ?? "—"}</span>
+      {showDuration && (
+        <span className="text-text-1">{t.duration_years ?? "—"}</span>
+      )}
     </div>
   )
 }
@@ -293,8 +304,9 @@ function ContractSection({
 
           {show("tariffs_table") &&
             (() => {
-              const isNoBattery = d.with_battery === "no"
-              const raw = isNoBattery
+              const isOnGridNoBattery =
+                combo === "ppa_on_grid" && d.with_battery === "no"
+              const raw = isOnGridNoBattery
                 ? d.ppa_on_grid_no_battery_tariffs
                 : d.tariff_slots
               let slots: TariffRespModel[] = []
@@ -303,23 +315,60 @@ function ContractSection({
               } catch {
                 slots = []
               }
-              return slots.length > 0 ? (
+              if (slots.length === 0) return null
+
+              const showDuration = (d.tariff_periods ?? 1) > 1
+              const COLS = "grid-cols-[1fr_80px_90px_90px]"
+
+              // Group by period_number
+              const periodGroups = Array.from(
+                slots.reduce((map, t) => {
+                  const p = String(t.period_number)
+                  if (!map.has(p)) map.set(p, [])
+                  map.get(p)!.push(t)
+                  return map
+                }, new Map<string, TariffRespModel[]>())
+              )
+
+              return (
                 <div>
                   <p className="text-text-1 mb-2 text-sm font-semibold">
                     Tariffs
                   </p>
                   <div className="overflow-hidden rounded-md border">
-                    <div className="text-text-1 grid grid-cols-[1fr_80px_120px] bg-neutral-100 px-4 py-2 text-xs font-semibold">
+                    <div
+                      className={`text-text-1 grid ${COLS} bg-neutral-100 px-4 py-2 text-xs font-semibold`}
+                    >
                       <span>Slot</span>
                       <span>Rate</span>
-                      <span>Time</span>
+                      <span>Start Time</span>
+                      <span>End Time</span>
                     </div>
-                    {slots.map((t, i) => (
-                      <TariffRow key={i} t={t} />
+                    {periodGroups.map(([periodNum, group]) => (
+                      <div key={periodNum}>
+                        {showDuration && (
+                          <div className="flex items-center justify-between border-t bg-neutral-50 px-4 py-1.5">
+                            <span className="text-text-1 text-xs font-semibold">
+                              Period {periodNum}
+                            </span>
+                            <span className="text-muted-foreground text-xs">
+                              Duration:{" "}
+                              <span className="text-text-1 font-medium">
+                                {group[0].duration_years != null
+                                  ? `${group[0].duration_years} yr${group[0].duration_years !== 1 ? "s" : ""}`
+                                  : "—"}
+                              </span>
+                            </span>
+                          </div>
+                        )}
+                        {group.map((t, i) => (
+                          <TariffRow key={i} t={t} showDuration={false} />
+                        ))}
+                      </div>
                     ))}
                   </div>
                 </div>
-              ) : null
+              )
             })()}
         </div>
       )}
@@ -862,7 +911,19 @@ function SitePageInner() {
 
       {/* ── Two-section layout ── */}
       <div className="space-y-6">
-        {/* Contract terms */}
+        {/* Invoice — always first */}
+        <section>
+          <h2 className="text-text-1 mb-3 font-semibold">Invoice</h2>
+          <InvoiceSection
+            contractUid={hasContract ? contractUid : null}
+            clientName={clientName}
+            siteName={siteName}
+            billingEmail={clientEmail}
+            contractCombo={contractCombo}
+          />
+        </section>
+
+        {/* Contract terms — below, only when a contract exists */}
         {hasContract && (
           <section className="overflow-hidden rounded-xl border bg-white">
             <div className="flex items-center justify-between border-b px-6 py-4">
@@ -878,18 +939,6 @@ function SitePageInner() {
             />
           </section>
         )}
-
-        {/* Invoice */}
-        <section>
-          <h2 className="text-text-1 mb-3 font-semibold">Invoice</h2>
-          <InvoiceSection
-            contractUid={hasContract ? contractUid : null}
-            clientName={clientName}
-            siteName={siteName}
-            billingEmail={clientEmail}
-            contractCombo={contractCombo}
-          />
-        </section>
       </div>
 
       {/* ── Edit contract sheet ── */}

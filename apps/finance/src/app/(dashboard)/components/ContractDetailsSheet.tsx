@@ -84,6 +84,7 @@ export default function ContractDetailsSheet({
     watch,
     reset,
     getValues,
+    setValue,
     formState: { errors },
   } = useForm<ContractDetailsValues>({
     resolver: zodResolver(schema) as any,
@@ -118,6 +119,9 @@ export default function ContractDetailsSheet({
       replace([])
       return
     }
+    const termYearsNum = parseInt(getValues("term_years") ?? "0", 10) || 0
+    const base = termYearsNum && count ? Math.floor(termYearsNum / count) : 0
+    const remainder = termYearsNum - base * count
     const slotNames = withBattery === "no" ? ["Solar", "Utility"] : ["A", "B"]
     replace(
       Array.from({ length: count }, (_, p) =>
@@ -128,6 +132,10 @@ export default function ContractDetailsSheet({
           rate: "",
           time_start: "",
           time_end: "",
+          // last period absorbs any remainder from integer division
+          duration_years: termYearsNum
+            ? String(p === count - 1 ? base + remainder : base)
+            : "",
         }))
       ).flat()
     )
@@ -177,6 +185,35 @@ export default function ContractDetailsSheet({
     const num = (v: string | undefined) => parseFloat(v ?? "0") || 0
     const int = (v: string | undefined) => parseInt(v ?? "0", 10) || 0
     const dt = (d: string | undefined) => (d ? toUtcIso(d) : undefined)
+
+    // Validate period durations sum to term years
+    if (
+      show("tariffs_table") &&
+      parseInt(values.tariff_periods ?? "0", 10) > 1
+    ) {
+      const termYearsNum = int(values.term_years)
+      const periodDuration = new Map<number, number>()
+      values.tariffs.forEach((t) => {
+        const p = parseInt(t.period_number, 10)
+        if (!periodDuration.has(p)) {
+          periodDuration.set(p, parseInt(t.duration_years ?? "0", 10) || 0)
+        }
+      })
+      const durations = Array.from(periodDuration.values())
+      if (durations.some((d) => d <= 0)) {
+        toast.error(
+          "Each tariff period must have a duration of at least 1 year."
+        )
+        return
+      }
+      const total = durations.reduce((a, b) => a + b, 0)
+      if (total !== termYearsNum) {
+        toast.error(
+          `Period durations must total ${termYearsNum} years (currently ${total}).`
+        )
+        return
+      }
+    }
 
     const payload: ContractDetailsPayload = {}
     if (show("term_years")) payload.term_years = int(values.term_years)
@@ -235,7 +272,19 @@ export default function ContractDetailsSheet({
     const resolvedActualEnd = values.actual_end_at || actualEnd
     if (resolvedActualEnd) payload.actual_end_at = dt(resolvedActualEnd)
     if (show("tariffs_table")) {
-      const isNoBattery = values.with_battery === "no"
+      const isNoBattery =
+        combo === "ppa_on_grid" && values.with_battery === "no"
+      // Build per-period duration map from the first slot of each period
+      const periodDuration = new Map<number, number | null>()
+      values.tariffs.forEach((t) => {
+        const p = parseInt(t.period_number, 10)
+        if (!periodDuration.has(p)) {
+          periodDuration.set(
+            p,
+            t.duration_years ? parseInt(t.duration_years, 10) : null
+          )
+        }
+      })
       const tariffRows = values.tariffs.map((t) => ({
         period_number: parseInt(t.period_number, 10),
         slot: t.slot,
@@ -243,6 +292,8 @@ export default function ContractDetailsSheet({
         rate: num(t.rate),
         start_time: t.time_start ?? "",
         end_time: t.time_end ?? "",
+        duration_years:
+          periodDuration.get(parseInt(t.period_number, 10)) ?? null,
       }))
       if (isNoBattery) {
         payload.ppa_on_grid_no_battery_tariffs = tariffRows
@@ -351,6 +402,8 @@ export default function ContractDetailsSheet({
                     fields={fields}
                     control={control}
                     register={register}
+                    setValue={setValue}
+                    termYears={termYears ?? ""}
                   />
                 </>
               ) : (

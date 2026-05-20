@@ -18,6 +18,7 @@ export const TariffRowSchema = z.object({
   rate: z.string().min(1, "Required"),
   time_start: z.string().optional(),
   time_end: z.string().optional(),
+  duration_years: z.string().optional(),
 })
 
 // Loose type for TypeScript (all optional) — runtime validation via makeDetailsSchema
@@ -118,7 +119,9 @@ export function detailsToDefaults(
 ): ContractDetailsValues {
   const slots: TariffRespModel[] = (() => {
     try {
-      return JSON.parse(d.tariff_slots ?? "[]")
+      // ppa_on_grid without battery stores tariffs in a dedicated field
+      const raw = d.ppa_on_grid_no_battery_tariffs ?? d.tariff_slots
+      return JSON.parse(raw ?? "[]")
     } catch {
       return []
     }
@@ -170,6 +173,7 @@ export function detailsToDefaults(
       rate: String(t.rate),
       time_start: t.start_time ?? "",
       time_end: t.end_time ?? "",
+      duration_years: t.duration_years != null ? String(t.duration_years) : "",
     })),
   }
 }

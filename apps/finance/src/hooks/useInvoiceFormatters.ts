@@ -12,5 +12,8 @@ export function useInvoiceFormatters() {
     fmtDate: (iso: string) => fmtDate(iso, dateFmt),
     fmtMonthYear: (iso: string) => fmtMonthYear(iso, dateFmt),
     fmtDateTime: (iso: string) => fmtDateTime(iso, dateFmt, timeFmt),
+    // date-fns format string and matching placeholder for DatePickerInput
+    datePickerFormat: dateFmt === "mdy" ? "MM/dd/yyyy" : "dd/MM/yyyy",
+    datePickerPlaceholder: dateFmt === "mdy" ? "12/25/2025" : "25/12/2025",
   }
 }

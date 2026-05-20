@@ -1,8 +1,8 @@
 "use client"
 
-import { format } from "date-fns"
 import { VIS } from "@/constants/contract"
 import type { ContractDetailsValues } from "@/constants/contractDetails"
+import { useInvoiceFormatters } from "@/hooks/useInvoiceFormatters"
 
 type Props = {
   values: ContractDetailsValues
@@ -29,15 +29,6 @@ function FieldRow({ label, value }: { label: string; value: React.ReactNode }) {
   )
 }
 
-function fmt(dateStr: string | undefined): string {
-  if (!dateStr) return "—"
-  try {
-    return format(new Date(dateStr), "M/d/yyyy")
-  } catch {
-    return dateStr
-  }
-}
-
 export default function ContractDetailsReview({
   values,
   show,
@@ -50,6 +41,8 @@ export default function ContractDetailsReview({
   siteName,
   clientName,
 }: Props) {
+  const { fmtDate } = useInvoiceFormatters()
+
   return (
     <div className="space-y-6">
       {/* 3-column field grid */}
@@ -109,28 +102,28 @@ export default function ContractDetailsReview({
           {show("signing_date") && (
             <FieldRow
               label="Contract Signing Date"
-              value={fmt(values.signing_date)}
+              value={fmtDate(values.signing_date ?? "")}
             />
           )}
           {show("commissioning_date") && (
             <FieldRow
               label="Expected Commissioning Date"
-              value={fmt(values.commissioning_date)}
+              value={fmtDate(values.commissioning_date ?? "")}
             />
           )}
           {show("contract_end") && (
-            <FieldRow label="Expected End Date" value={fmt(contractEnd)} />
+            <FieldRow label="Expected End Date" value={fmtDate(contractEnd)} />
           )}
           {show("actual_commissioned_at") && values.actual_commissioned_at && (
             <FieldRow
               label="Actual Commissioned Date"
-              value={fmt(values.actual_commissioned_at)}
+              value={fmtDate(values.actual_commissioned_at)}
             />
           )}
           {show("actual_end_at") && (values.actual_end_at || actualEnd) && (
             <FieldRow
               label="Actual End Date"
-              value={fmt(values.actual_end_at || actualEnd)}
+              value={fmtDate(values.actual_end_at || actualEnd)}
             />
           )}
           {show("system_size_kwp") && (
@@ -213,45 +206,88 @@ export default function ContractDetailsReview({
       </div>
 
       {/* Tariffs table */}
-      {show("tariffs_table") && values.tariffs.length > 0 && (
-        <div className="border-border overflow-hidden rounded-lg border">
-          <div className="bg-blue/40 grid grid-cols-[180px_140px_140px] px-4 py-2.5 text-xs font-semibold text-[#2C6B6B]">
-            <span>Tariff</span>
-            <span>Type</span>
-            <span>Rate</span>
-          </div>
-          {values.tariffs.map((t, i) => (
-            <div
-              key={i}
-              className="border-border grid grid-cols-[180px_140px_140px] items-center border-t bg-white px-4 py-2.5 text-xs"
-            >
-              <span className="text-text-1 font-medium">
-                {(
-                  {
-                    A: "Solar Hours",
-                    B: "Non-Solar Hours",
-                    Solar: "Solar Hours",
-                    Utility: "Utility Hours",
-                  } as Record<string, string>
-                )[t.slot] ?? t.slot}{" "}
-                ({t.slot_type === "Variable" ? "Indexed" : t.slot_type || "—"})
-              </span>
-              <span className="text-text-1">{t.slot_type || "—"}</span>
-              <span
-                className={
-                  t.rate && parseFloat(t.rate) < 0
-                    ? "text-destructive font-medium"
-                    : "text-primary font-medium"
-                }
+      {show("tariffs_table") &&
+        values.tariffs.length > 0 &&
+        (() => {
+          const SLOT_LABEL: Record<string, string> = {
+            A: "Solar Hours",
+            B: "Non-Solar Hours",
+            Solar: "Solar Hours",
+            Utility: "Utility Hours",
+          }
+          const showDuration = parseInt(values.tariff_periods ?? "0", 10) > 1
+          const COLS = "grid-cols-[1fr_120px_100px_100px]"
+
+          // Group by period_number preserving insertion order
+          const periodGroups = Array.from(
+            values.tariffs.reduce((map, t) => {
+              const p = t.period_number ?? "1"
+              if (!map.has(p)) map.set(p, [])
+              map.get(p)!.push(t)
+              return map
+            }, new Map<string, typeof values.tariffs>())
+          )
+
+          return (
+            <div className="border-border overflow-hidden rounded-lg border">
+              <div
+                className={`bg-blue/40 grid ${COLS} gap-4 px-4 py-2.5 text-xs font-semibold text-[#2C6B6B]`}
               >
-                {t.rate
-                  ? `${t.rate} ${t.slot_type === "Variable" ? "%" : "$/kWh"}`
-                  : "—"}
-              </span>
+                <span>Tariff</span>
+                <span>Rate</span>
+                <span>Start Time</span>
+                <span>End Time</span>
+              </div>
+
+              {periodGroups.map(([periodNum, slots]) => (
+                <div key={periodNum}>
+                  {showDuration && (
+                    <div className="border-border flex items-center justify-between border-t bg-neutral-50 px-4 py-2">
+                      <span className="text-text-1 text-xs font-semibold">
+                        Period {periodNum}
+                      </span>
+                      <span className="text-muted-foreground text-xs">
+                        Duration:{" "}
+                        <span className="text-text-1 font-medium">
+                          {slots[0].duration_years
+                            ? `${slots[0].duration_years} yr${parseInt(slots[0].duration_years, 10) !== 1 ? "s" : ""}`
+                            : "—"}
+                        </span>
+                      </span>
+                    </div>
+                  )}
+                  {slots.map((t, i) => (
+                    <div
+                      key={i}
+                      className={`border-border grid ${COLS} items-center gap-4 border-t bg-white px-4 py-2.5 text-xs`}
+                    >
+                      <span className="text-text-1 font-medium">
+                        {SLOT_LABEL[t.slot] ?? t.slot} (
+                        {t.slot_type === "Variable"
+                          ? "Indexed"
+                          : t.slot_type || "—"}
+                        )
+                      </span>
+                      <span
+                        className={
+                          t.rate && parseFloat(t.rate) < 0
+                            ? "text-destructive font-medium"
+                            : "text-primary font-medium"
+                        }
+                      >
+                        {t.rate
+                          ? `${t.rate} ${t.slot_type === "Variable" ? "%" : "$/kWh"}`
+                          : "—"}
+                      </span>
+                      <span className="text-text-1">{t.time_start || "—"}</span>
+                      <span className="text-text-1">{t.time_end || "—"}</span>
+                    </div>
+                  ))}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      )}
+          )
+        })()}
 
       {/* Warning banner */}
       <div className="flex items-start gap-2 rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-xs text-orange-700">

@@ -26,6 +26,7 @@ import {
 } from "@/constants/contract"
 import { localDate, toDateStr } from "@/constants/contractDetails"
 import type { ContractDetailsValues } from "@/constants/contractDetails"
+import { useInvoiceFormatters } from "@/hooks/useInvoiceFormatters"
 
 const LABEL = "shrink-0 w-[160px] text-sm text-text-1 font-medium leading-snug"
 
@@ -50,6 +51,8 @@ export default function ContractFieldsGrid({
   actualEnd,
   computedTotal,
 }: Props) {
+  const { datePickerFormat, datePickerPlaceholder } = useInvoiceFormatters()
+
   return (
     <div className="grid grid-cols-[400px_350px_350px] gap-x-12 gap-y-5">
       {show("term_years") && (
@@ -83,6 +86,8 @@ export default function ContractFieldsGrid({
                 <DatePickerInput
                   value={field.value ? localDate(field.value) : undefined}
                   onChange={(d) => field.onChange(d ? toDateStr(d) : "")}
+                  dateFormat={datePickerFormat}
+                  placeholder={datePickerPlaceholder}
                   className="flex-1"
                 />
               )}
@@ -200,6 +205,8 @@ export default function ContractFieldsGrid({
                 <DatePickerInput
                   value={field.value ? localDate(field.value) : undefined}
                   className="flex-1"
+                  dateFormat={datePickerFormat}
+                  placeholder={datePickerPlaceholder}
                   onChange={(d) => field.onChange(d ? toDateStr(d) : "")}
                 />
               )}
@@ -219,6 +226,7 @@ export default function ContractFieldsGrid({
           <DatePickerInput
             value={contractEnd ? localDate(contractEnd) : undefined}
             className="flex-1"
+            dateFormat={datePickerFormat}
             disabled
           />
         </div>
@@ -240,6 +248,8 @@ export default function ContractFieldsGrid({
                 <DatePickerInput
                   value={field.value ? localDate(field.value) : undefined}
                   className="flex-1"
+                  dateFormat={datePickerFormat}
+                  placeholder={datePickerPlaceholder}
                   onChange={(d) => field.onChange(d ? toDateStr(d) : "")}
                 />
               )}
@@ -265,6 +275,7 @@ export default function ContractFieldsGrid({
                   : undefined
             }
             className="flex-1"
+            dateFormat={datePickerFormat}
             disabled
           />
         </div>
