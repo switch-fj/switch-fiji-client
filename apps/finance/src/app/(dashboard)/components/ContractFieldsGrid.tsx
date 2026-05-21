@@ -267,13 +267,7 @@ export default function ContractFieldsGrid({
             </span>
           </label>
           <DatePickerInput
-            value={
-              watch("actual_end_at")
-                ? localDate(watch("actual_end_at")!)
-                : actualEnd
-                  ? localDate(actualEnd)
-                  : undefined
-            }
+            value={actualEnd ? localDate(actualEnd) : undefined}
             className="flex-1"
             dateFormat={datePickerFormat}
             disabled

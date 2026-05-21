@@ -159,6 +159,11 @@ export default function ContractDetailsSheet({
     return toDateStr(d)
   }, [actualCommissionedAt, termYears])
 
+  useEffect(() => {
+    setValue("actual_end_at", actualEnd)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [actualEnd])
+
   const equipmentLease = watch("equipment_lease")
   const maintenance = watch("maintenance")
   const computedTotal = useMemo(() => {

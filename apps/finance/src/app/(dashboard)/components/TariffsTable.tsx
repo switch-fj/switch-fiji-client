@@ -40,7 +40,7 @@ function tariffLabel(slot: string, slotType?: string): string {
   return type ? `${name} (${type})` : name
 }
 
-const COLS = "grid-cols-[200px_200px_160px_110px_110px]"
+const COLS = "grid-cols-[200px_200px_160px_140px_140px]"
 
 export default function TariffsTable({
   show,
