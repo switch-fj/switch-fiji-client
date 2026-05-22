@@ -23,6 +23,7 @@ import {
   IMPLEMENTATION_PERIOD_OPTIONS,
   TARIFF_INDEXED_RULE_TYPE_OPTIONS,
   WITH_BATTERY_OPTIONS,
+  WEEKLY_START_DAY_OPTIONS,
 } from "@/constants/contract"
 import { localDate, toDateStr } from "@/constants/contractDetails"
 import type { ContractDetailsValues } from "@/constants/contractDetails"
@@ -129,6 +130,30 @@ export default function ContractFieldsGrid({
               {errors.billing_frequency.message}
             </p>
           )}
+        </div>
+      )}
+
+      {show("billing_frequency") && watch("billing_frequency") === "weekly" && (
+        <div className="flex items-center gap-3">
+          <label className={LABEL}>Weekly Billing Start Day</label>
+          <Controller
+            name="weekly_billing_start_day"
+            control={control}
+            render={({ field }) => (
+              <Select value={field.value} onValueChange={field.onChange}>
+                <SelectTrigger className="w-full bg-white font-normal">
+                  <SelectValue placeholder="Select day" />
+                </SelectTrigger>
+                <SelectContent>
+                  {WEEKLY_START_DAY_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          />
         </div>
       )}
 

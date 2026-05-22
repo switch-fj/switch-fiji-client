@@ -25,7 +25,7 @@ import { useInvoiceFormatters } from "@/hooks/useInvoiceFormatters"
 import { useStore } from "@/store"
 import { uniqueByInvoiceUid } from "@/utils/invoice"
 import { EnumContractType, EnumContractSystemMode } from "@/constants/mangle"
-import { getCombo, VIS } from "@/constants/contract"
+import { getCombo, VIS, DAY_LABEL } from "@/constants/contract"
 import type { ContractDetailsRespModel, TariffRespModel } from "@/types/site"
 import InvoiceLineItemsTable from "@/app/(dashboard)/components/InvoiceLineItemsTable"
 import InvoiceMeterDataTable from "@/app/(dashboard)/components/InvoiceMeterDataTable"
@@ -263,6 +263,14 @@ function ContractSection({
                   value={d.billing_frequency ?? "—"}
                 />
               )}
+              {show("billing_frequency") &&
+                d.billing_frequency === "weekly" &&
+                d.weekly_billing_start_day != null && (
+                  <FieldRow
+                    label="Weekly Billing Day"
+                    value={DAY_LABEL[d.weekly_billing_start_day] ?? "—"}
+                  />
+                )}
               {show("grid_meter_reading_kwh") && (
                 <FieldRow
                   label="Grid Meter (kWh)"

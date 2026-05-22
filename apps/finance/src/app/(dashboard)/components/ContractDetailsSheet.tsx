@@ -73,6 +73,7 @@ export default function ContractDetailsSheet({
     minimum_spend: "",
     actual_commissioned_at: "",
     actual_end_at: "",
+    weekly_billing_start_day: "",
     tariffs: [],
   }
 
@@ -225,6 +226,11 @@ export default function ContractDetailsSheet({
     if (show("signing_date")) payload.signed_at = dt(values.signing_date)
     if (show("billing_frequency"))
       payload.billing_frequency = values.billing_frequency
+    if (
+      values.billing_frequency === "weekly" &&
+      values.weekly_billing_start_day !== ""
+    )
+      payload.weekly_billing_start_day = int(values.weekly_billing_start_day)
     if (show("tariff_periods"))
       payload.tariff_periods = int(values.tariff_periods)
     if (show("tariff_indexed_rule_type") && values.tariff_indexed_rule_type)

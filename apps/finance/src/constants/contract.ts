@@ -171,3 +171,23 @@ export const WITH_BATTERY_OPTIONS = [
   { label: "Yes", value: "yes" },
   { label: "No", value: "no" },
 ]
+
+export const WEEKLY_START_DAY_OPTIONS = [
+  { label: "Monday", value: "0" },
+  { label: "Tuesday", value: "1" },
+  { label: "Wednesday", value: "2" },
+  { label: "Thursday", value: "3" },
+  { label: "Friday", value: "4" },
+  { label: "Saturday", value: "5" },
+  { label: "Sunday", value: "6" },
+]
+
+export const DAY_LABEL: Record<number, string> = {
+  0: "Monday",
+  1: "Tuesday",
+  2: "Wednesday",
+  3: "Thursday",
+  4: "Friday",
+  5: "Saturday",
+  6: "Sunday",
+}

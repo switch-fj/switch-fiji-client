@@ -45,6 +45,7 @@ export const ContractDetailsSchema = z.object({
   minimum_spend: z.string().optional(),
   actual_commissioned_at: z.string().optional(),
   actual_end_at: z.string().optional(),
+  weekly_billing_start_day: z.string().optional(),
   tariffs: z.array(TariffRowSchema),
 })
 
@@ -107,6 +108,7 @@ export function makeDetailsSchema(combo: Combo | null) {
       "Minimum monthly consumption is required"
     ),
     minimum_spend: f("minimum_spend", "Minimum spend is required"),
+    weekly_billing_start_day: opt,
     tariffs:
       combo && VIS.tariffs_table[combo]
         ? z.array(TariffRowSchema).min(1, "Add at least one tariff row")
@@ -166,6 +168,10 @@ export function detailsToDefaults(
     minimum_spend: d.minimum_spend != null ? String(d.minimum_spend) : "",
     actual_commissioned_at: d.actual_commissioned_at?.split("T")[0] ?? "",
     actual_end_at: d.actual_end_at?.split("T")[0] ?? "",
+    weekly_billing_start_day:
+      d.weekly_billing_start_day != null
+        ? String(d.weekly_billing_start_day)
+        : "",
     tariffs: slots.map((t) => ({
       period_number: String(t.period_number),
       slot: t.slot,

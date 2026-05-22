@@ -69,6 +69,7 @@ export type ContractDetailsPayload = {
   tariff_indexed_rule_type?: string
   tariffs?: TariffRowPayload[]
   ppa_on_grid_no_battery_tariffs?: NoBatteryTariffRowPayload[]
+  weekly_billing_start_day?: number
 }
 
 export type ContractModel = {
@@ -124,6 +125,7 @@ export type ContractDetailsRespModel = {
   tariff_slots: string | null
   tariff_indexed_rule_type: string | null
   ppa_on_grid_no_battery_tariffs: string | null
+  weekly_billing_start_day: number | null
 }
 
 export type ContractDetailedRespModel = {

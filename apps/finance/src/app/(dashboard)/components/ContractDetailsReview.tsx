@@ -1,6 +1,6 @@
 "use client"
 
-import { VIS } from "@/constants/contract"
+import { VIS, DAY_LABEL } from "@/constants/contract"
 import type { ContractDetailsValues } from "@/constants/contractDetails"
 import { useInvoiceFormatters } from "@/hooks/useInvoiceFormatters"
 
@@ -172,6 +172,18 @@ export default function ContractDetailsReview({
               value={values.billing_frequency}
             />
           )}
+          {show("billing_frequency") &&
+            values.billing_frequency === "weekly" &&
+            values.weekly_billing_start_day !== "" && (
+              <FieldRow
+                label="Weekly Billing Start Day"
+                value={
+                  DAY_LABEL[
+                    parseInt(values.weekly_billing_start_day ?? "", 10)
+                  ] ?? "—"
+                }
+              />
+            )}
           {show("equipment_lease") && (
             <FieldRow
               label="Equipment Lease"
