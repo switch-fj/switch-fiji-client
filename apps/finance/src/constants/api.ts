@@ -38,6 +38,10 @@ export const INVOICE = {
   LIVE: (contractUid: string) => `/api/v1/invoice/live/${contractUid}`,
 } as const
 
+export const JOBRUN = {
+  COMPUTE_INVOICE: "/api/v1/jobrun/invoice/compute",
+} as const
+
 export const PORTFOLIO = {
   STATS: "/api/v1/admin/portfolio/stats",
 } as const

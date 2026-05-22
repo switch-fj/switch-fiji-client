@@ -1,5 +1,5 @@
 import api from "@/lib/axios"
-import { INVOICE } from "@/constants/api"
+import { INVOICE, JOBRUN } from "@/constants/api"
 import type { ServerResponse } from "@/types/client"
 import type {
   InvoiceRespModel,
@@ -34,6 +34,18 @@ export const getLiveInvoice = async (
   const { data } = await api.get<ServerResponse<InvoiceLivePage>>(
     INVOICE.LIVE(contractUid),
     { params: params.next_cursor ? params : { limit: params.limit } }
+  )
+  return data
+}
+
+export const computeInvoice = async (payload: {
+  contract_uid: string
+  period_start: string
+  period_end: string
+}): Promise<ServerResponse<{ task_id: string }>> => {
+  const { data } = await api.post<ServerResponse<{ task_id: string }>>(
+    JOBRUN.COMPUTE_INVOICE,
+    payload
   )
   return data
 }

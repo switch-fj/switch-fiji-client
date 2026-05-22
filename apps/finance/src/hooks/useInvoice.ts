@@ -6,7 +6,9 @@ import {
   getInvoiceHistory,
   getLiveInvoice,
   downloadInvoicePdf,
+  computeInvoice,
 } from "@/requests/invoice"
+import { toast } from "sonner"
 
 export const INVOICE_KEYS = {
   detail: (uid: string) => ["invoice", uid] as const,
@@ -66,3 +68,12 @@ export const useDownloadInvoicePdf = () => {
     }) => downloadInvoicePdf(invoiceUid, invoiceRef),
   })
 }
+
+export const useComputeInvoice = () =>
+  useMutation({
+    mutationFn: computeInvoice,
+    onSuccess: (res) =>
+      toast.success(res.message || "Invoice computation started."),
+    onError: (err: Error) =>
+      toast.error(err.message || "Failed to compute invoice."),
+  })

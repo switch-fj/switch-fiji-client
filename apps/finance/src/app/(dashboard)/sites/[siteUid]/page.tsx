@@ -11,7 +11,7 @@ import {
   Edit,
 } from "lucide-react"
 import { format } from "date-fns"
-import { Button, Skeleton } from "@workspace/ui"
+import { Button, DatePickerInput, Skeleton } from "@workspace/ui"
 import { useGetContract } from "@/hooks/useContract"
 import { useClients } from "@/hooks/useClient"
 import { useSites } from "@/hooks/useSite"
@@ -20,6 +20,7 @@ import {
   useGetInvoiceHistory,
   useGetLiveInvoice,
   useDownloadInvoicePdf,
+  useComputeInvoice,
 } from "@/hooks/useInvoice"
 import { useInvoiceFormatters } from "@/hooks/useInvoiceFormatters"
 import { useStore } from "@/store"
@@ -406,9 +407,20 @@ function InvoiceSection({
   // For live mode: which snapshot uid is selected (null = latest / first)
   const [liveSnapshotUid, setLiveSnapshotUid] = useState<string | null>(null)
 
-  const { fmtDate, fmtMonthYear, fmtDateTime } = useInvoiceFormatters()
+  const {
+    fmtDate,
+    fmtMonthYear,
+    fmtDateTime,
+    datePickerFormat,
+    datePickerPlaceholder,
+  } = useInvoiceFormatters()
   const { mutate: downloadPdf, isPending: isDownloading } =
     useDownloadInvoicePdf()
+  const { mutate: computeInvoiceMutate, isPending: computePending } =
+    useComputeInvoice()
+
+  const [periodStart, setPeriodStart] = useState<Date | undefined>()
+  const [periodEnd, setPeriodEnd] = useState<Date | undefined>()
 
   const {
     data: historyData,
@@ -480,347 +492,403 @@ function InvoiceSection({
   }
 
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_340px] gap-4">
-      {/* ── Left: invoice card ── */}
-      <div className="overflow-hidden rounded-xl border bg-white">
-        {/* Card header */}
-        <div className="grid grid-cols-[1fr_auto] gap-8 border-b px-6 py-5">
-          <div className="space-y-2">
-            <img
-              src="https://i.ibb.co/S4PF9FrQ/switch-Fjlogo.png"
-              alt="Switch"
-              className="h-6 object-contain"
-            />
-            <div className="text-text-1 flex items-center gap-2 text-sm">
-              <span className="font-medium">Invoice Date:</span>
-              {invoiceLoading ? (
-                <div className="h-3 w-44 animate-pulse rounded bg-gray-200" />
-              ) : hasInvoice ? (
-                <span>
-                  {fmtDate(displayInvoice.period_start_at)} –{" "}
-                  {fmtDate(displayInvoice.period_end_at)}
-                </span>
-              ) : (
-                <span>--</span>
-              )}
-            </div>
-          </div>
-          <div className="text-sm">
-            <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
-              <span className="text-text-1 font-medium">Customer:</span>
-              <span>{clientName}</span>
-              <span className="text-text-1 font-medium">Site:</span>
-              <span>{siteName || "—"}</span>
-              <span className="text-text-1 font-medium">Invoice No:</span>
-              {invoiceLoading ? (
-                <div className="h-3 w-28 animate-pulse rounded bg-gray-200" />
-              ) : isLive ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700">
-                  <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
-                  Live
-                </span>
-              ) : historicalInvoice ? (
-                <span className="font-medium text-blue-600">
-                  {historicalInvoice.invoice_ref}
-                </span>
-              ) : (
-                <span>--</span>
-              )}
-            </div>
-          </div>
+    <div className="flex flex-col gap-4">
+      {contractUid && (
+        <div className="flex items-center gap-3 rounded-xl border bg-white px-5 py-4">
+          <span className="text-text-1 shrink-0 text-sm font-semibold">
+            Compute Invoice
+          </span>
+          <DatePickerInput
+            value={periodStart}
+            onChange={setPeriodStart}
+            dateFormat={datePickerFormat}
+            placeholder={datePickerPlaceholder}
+          />
+          <span className="text-text-1/50 text-sm">→</span>
+          <DatePickerInput
+            value={periodEnd}
+            onChange={setPeriodEnd}
+            dateFormat={datePickerFormat}
+            placeholder={datePickerPlaceholder}
+          />
+          <Button
+            variant="primary"
+            size="md"
+            className="max-w-fit shrink-0 rounded-sm"
+            disabled={!periodStart || !periodEnd || computePending}
+            onClick={() => {
+              if (!periodStart || !periodEnd) return
+              const start = new Date(periodStart)
+              start.setUTCHours(0, 0, 0, 0)
+              const end = new Date(periodEnd)
+              end.setUTCHours(23, 59, 59, 999)
+              computeInvoiceMutate(
+                {
+                  contract_uid: contractUid,
+                  period_start: start.toISOString(),
+                  period_end: end.toISOString(),
+                },
+                {
+                  onSuccess: () => {
+                    setPeriodStart(undefined)
+                    setPeriodEnd(undefined)
+                  },
+                }
+              )
+            }}
+          >
+            {computePending ? "Computing…" : "Compute"}
+          </Button>
         </div>
-
-        {/* Date pills for live snapshots */}
-        {isLive && !liveLoading && dateGroups.length > 1 && (
-          <div className="flex gap-2 overflow-x-auto border-b px-6 py-3">
-            {dateGroups.map((group) => {
-              const isActive = group.snapshots.some((s) =>
-                liveSnapshotUid
-                  ? s.uid === liveSnapshotUid
-                  : s === allSnapshots[0]
-              )
-              return (
-                <button
-                  key={group.dateKey}
-                  onClick={() => setLiveSnapshotUid(group.snapshots[0].uid)}
-                  className={[
-                    "shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-                    isActive
-                      ? "border-green-500 bg-green-100 text-green-700"
-                      : "border-border text-text-1 bg-white hover:bg-neutral-100",
-                  ].join(" ")}
-                >
-                  {group.label}
-                </button>
-              )
-            })}
-          </div>
-        )}
-
-        {/* Card body */}
-        <div className="px-6 py-5">
-          {invoiceLoading ? (
-            <div className="animate-pulse space-y-4">
-              <div className="overflow-hidden rounded-md border">
-                <div className="bg-[#E8EEF2] px-4 py-3">
-                  <div className="h-3.5 w-1/3 rounded bg-gray-300" />
-                </div>
-                {[0, 1, 2].map((i) => (
-                  <div
-                    key={i}
-                    className={`flex gap-6 px-4 py-3.5 ${i % 2 ? "bg-neutral-50" : "bg-white"}`}
-                  >
-                    <div className="h-3 flex-1 rounded bg-gray-200" />
-                    <div className="h-3 w-14 rounded bg-gray-200" />
-                    <div className="h-3 w-10 rounded bg-gray-200" />
-                    <div className="h-3 w-14 rounded bg-gray-200" />
-                  </div>
-                ))}
+      )}
+      <div className="grid grid-cols-[minmax(0,1fr)_340px] gap-4">
+        {/* ── Left: invoice card ── */}
+        <div className="overflow-hidden rounded-xl border bg-white">
+          {/* Card header */}
+          <div className="grid grid-cols-[1fr_auto] gap-8 border-b px-6 py-5">
+            <div className="space-y-2">
+              <img
+                src="https://i.ibb.co/S4PF9FrQ/switch-Fjlogo.png"
+                alt="Switch"
+                className="h-6 object-contain"
+              />
+              <div className="text-text-1 flex items-center gap-2 text-sm">
+                <span className="font-medium">Invoice Date:</span>
+                {invoiceLoading ? (
+                  <div className="h-3 w-44 animate-pulse rounded bg-gray-200" />
+                ) : hasInvoice ? (
+                  <span>
+                    {fmtDate(displayInvoice.period_start_at)} –{" "}
+                    {fmtDate(displayInvoice.period_end_at)}
+                  </span>
+                ) : (
+                  <span>--</span>
+                )}
               </div>
             </div>
-          ) : !contractUid ? (
-            <div className="flex min-h-[200px] flex-col items-center justify-center gap-2">
-              <p className="text-text-1 text-base font-semibold">No contract</p>
-              <p className="text-muted-foreground text-sm">
-                Link a contract to generate invoices.
-              </p>
+            <div className="text-sm">
+              <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+                <span className="text-text-1 font-medium">Customer:</span>
+                <span>{clientName}</span>
+                <span className="text-text-1 font-medium">Site:</span>
+                <span>{siteName || "—"}</span>
+                <span className="text-text-1 font-medium">Invoice No:</span>
+                {invoiceLoading ? (
+                  <div className="h-3 w-28 animate-pulse rounded bg-gray-200" />
+                ) : isLive ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700">
+                    <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+                    Live
+                  </span>
+                ) : historicalInvoice ? (
+                  <span className="font-medium text-blue-600">
+                    {historicalInvoice.invoice_ref}
+                  </span>
+                ) : (
+                  <span>--</span>
+                )}
+              </div>
             </div>
-          ) : !hasInvoice ? (
-            <div className="flex min-h-[200px] flex-col items-center justify-center gap-2">
-              <p className="text-text-1 text-base font-semibold">No data yet</p>
-              <p className="text-muted-foreground text-sm">
-                Live invoice data will appear here once available.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-5">
-              <InvoiceLineItemsTable
-                invoice={displayInvoice}
-                hideUtilityLines={contractCombo === "ppa_on_grid"}
-              />
-              <InvoiceMeterDataTable invoice={displayInvoice} />
+          </div>
+
+          {/* Date pills for live snapshots */}
+          {isLive && !liveLoading && dateGroups.length > 1 && (
+            <div className="flex gap-2 overflow-x-auto border-b px-6 py-3">
+              {dateGroups.map((group) => {
+                const isActive = group.snapshots.some((s) =>
+                  liveSnapshotUid
+                    ? s.uid === liveSnapshotUid
+                    : s === allSnapshots[0]
+                )
+                return (
+                  <button
+                    key={group.dateKey}
+                    onClick={() => setLiveSnapshotUid(group.snapshots[0].uid)}
+                    className={[
+                      "shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                      isActive
+                        ? "border-green-500 bg-green-100 text-green-700"
+                        : "border-border text-text-1 bg-white hover:bg-neutral-100",
+                    ].join(" ")}
+                  >
+                    {group.label}
+                  </button>
+                )
+              })}
             </div>
           )}
-        </div>
-      </div>
 
-      {/* ── Right: live snapshots + history + actions ── */}
-      <div className="flex flex-col gap-4">
-        {/* Live snapshots box */}
-        {contractUid && (
-          <div className="flex max-h-72 flex-col overflow-hidden rounded-xl border bg-white">
-            <div className="flex shrink-0 items-center justify-between border-b px-4 py-4">
-              <span className="flex items-center gap-2 font-semibold">
-                <span className="h-2 w-2 rounded-full bg-green-500" />
-                Live
-              </span>
-              {liveLoading && (
-                <Loader2 className="text-muted-foreground h-3.5 w-3.5 animate-spin" />
-              )}
-            </div>
-
-            {liveLoading ? (
-              <div className="animate-pulse divide-y">
-                {[0, 1, 2].map((i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between px-4 py-3"
-                  >
-                    <div className="h-3 w-20 rounded bg-gray-200" />
-                    <div className="h-3 w-16 rounded bg-gray-200" />
+          {/* Card body */}
+          <div className="px-6 py-5">
+            {invoiceLoading ? (
+              <div className="animate-pulse space-y-4">
+                <div className="overflow-hidden rounded-md border">
+                  <div className="bg-[#E8EEF2] px-4 py-3">
+                    <div className="h-3.5 w-1/3 rounded bg-gray-300" />
                   </div>
-                ))}
-              </div>
-            ) : dateGroups.length === 0 ? (
-              <div className="text-muted-foreground px-4 py-6 text-center text-sm">
-                No live data yet
-              </div>
-            ) : (
-              <div className="overflow-y-auto">
-                <div className="divide-y">
-                  {dateGroups.map((group) => (
-                    <div key={group.dateKey}>
-                      <div className="text-muted-foreground bg-neutral-50 px-4 py-1.5 text-[11px] font-semibold tracking-wide uppercase">
-                        {group.label}
-                      </div>
-                      {group.snapshots.map((snap, index) => {
-                        const isActive =
-                          isLive &&
-                          (liveSnapshotUid === snap.uid ||
-                            (!liveSnapshotUid && snap === allSnapshots[0]))
-                        const s = new Date(snap.period_start_at)
-                        const e = new Date(snap.period_end_at)
-                        const startTime = `${String(s.getUTCHours()).padStart(2, "0")}:${String(s.getUTCMinutes()).padStart(2, "0")}`
-                        const endTime = `${String(e.getUTCHours()).padStart(2, "0")}:${String(e.getUTCMinutes()).padStart(2, "0")}`
-                        return (
-                          <button
-                            key={snap.uid}
-                            onClick={() => {
-                              setViewMode("live")
-                              setLiveSnapshotUid(snap.uid)
-                            }}
-                            className={[
-                              "flex w-full items-center justify-between border-l-2 py-2.5 pr-4 pl-3.5 text-left transition-all hover:bg-green-50",
-                              index % 2 === 0 ? "bg-white" : "bg-neutral-50",
-                              isActive
-                                ? "border-green-500 bg-green-50"
-                                : "border-transparent",
-                            ].join(" ")}
-                          >
-                            <span className="text-text-1 text-xs font-medium">
-                              {startTime} – {endTime}
-                            </span>
-                            <span className="text-muted-foreground text-xs">
-                              {snap.total}
-                            </span>
-                          </button>
-                        )
-                      })}
+                  {[0, 1, 2].map((i) => (
+                    <div
+                      key={i}
+                      className={`flex gap-6 px-4 py-3.5 ${i % 2 ? "bg-neutral-50" : "bg-white"}`}
+                    >
+                      <div className="h-3 flex-1 rounded bg-gray-200" />
+                      <div className="h-3 w-14 rounded bg-gray-200" />
+                      <div className="h-3 w-10 rounded bg-gray-200" />
+                      <div className="h-3 w-14 rounded bg-gray-200" />
                     </div>
                   ))}
                 </div>
-                {liveHasMore && (
+              </div>
+            ) : !contractUid ? (
+              <div className="flex min-h-[200px] flex-col items-center justify-center gap-2">
+                <p className="text-text-1 text-base font-semibold">
+                  No contract
+                </p>
+                <p className="text-muted-foreground text-sm">
+                  Link a contract to generate invoices.
+                </p>
+              </div>
+            ) : !hasInvoice ? (
+              <div className="flex min-h-[200px] flex-col items-center justify-center gap-2">
+                <p className="text-text-1 text-base font-semibold">
+                  No data yet
+                </p>
+                <p className="text-muted-foreground text-sm">
+                  Live invoice data will appear here once available.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-5">
+                <InvoiceLineItemsTable
+                  invoice={displayInvoice}
+                  hideUtilityLines={contractCombo === "ppa_on_grid"}
+                />
+                <InvoiceMeterDataTable invoice={displayInvoice} />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── Right: live snapshots + history + actions ── */}
+        <div className="flex flex-col gap-4">
+          {/* Live snapshots box */}
+          {contractUid && (
+            <div className="flex max-h-72 flex-col overflow-hidden rounded-xl border bg-white">
+              <div className="flex shrink-0 items-center justify-between border-b px-4 py-4">
+                <span className="flex items-center gap-2 font-semibold">
+                  <span className="h-2 w-2 rounded-full bg-green-500" />
+                  Live
+                </span>
+                {liveLoading && (
+                  <Loader2 className="text-muted-foreground h-3.5 w-3.5 animate-spin" />
+                )}
+              </div>
+
+              {liveLoading ? (
+                <div className="animate-pulse divide-y">
+                  {[0, 1, 2].map((i) => (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between px-4 py-3"
+                    >
+                      <div className="h-3 w-20 rounded bg-gray-200" />
+                      <div className="h-3 w-16 rounded bg-gray-200" />
+                    </div>
+                  ))}
+                </div>
+              ) : dateGroups.length === 0 ? (
+                <div className="text-muted-foreground px-4 py-6 text-center text-sm">
+                  No live data yet
+                </div>
+              ) : (
+                <div className="overflow-y-auto">
+                  <div className="divide-y">
+                    {dateGroups.map((group) => (
+                      <div key={group.dateKey}>
+                        <div className="text-muted-foreground bg-neutral-50 px-4 py-1.5 text-[11px] font-semibold tracking-wide uppercase">
+                          {group.label}
+                        </div>
+                        {group.snapshots.map((snap, index) => {
+                          const isActive =
+                            isLive &&
+                            (liveSnapshotUid === snap.uid ||
+                              (!liveSnapshotUid && snap === allSnapshots[0]))
+                          const s = new Date(snap.period_start_at)
+                          const e = new Date(snap.period_end_at)
+                          const startTime = `${String(s.getUTCHours()).padStart(2, "0")}:${String(s.getUTCMinutes()).padStart(2, "0")}`
+                          const endTime = `${String(e.getUTCHours()).padStart(2, "0")}:${String(e.getUTCMinutes()).padStart(2, "0")}`
+                          return (
+                            <button
+                              key={snap.uid}
+                              onClick={() => {
+                                setViewMode("live")
+                                setLiveSnapshotUid(snap.uid)
+                              }}
+                              className={[
+                                "flex w-full items-center justify-between border-l-2 py-2.5 pr-4 pl-3.5 text-left transition-all hover:bg-green-50",
+                                index % 2 === 0 ? "bg-white" : "bg-neutral-50",
+                                isActive
+                                  ? "border-green-500 bg-green-50"
+                                  : "border-transparent",
+                              ].join(" ")}
+                            >
+                              <span className="text-text-1 text-xs font-medium">
+                                {startTime} – {endTime}
+                              </span>
+                              <span className="text-muted-foreground text-xs">
+                                {snap.total}
+                              </span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                  {liveHasMore && (
+                    <button
+                      onClick={() => liveFetchMore()}
+                      disabled={liveFetchingMore}
+                      className="text-muted-foreground flex w-full items-center justify-center gap-2 py-3 text-xs font-medium transition-colors hover:bg-neutral-50 disabled:opacity-50"
+                    >
+                      {liveFetchingMore ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : null}
+                      {liveFetchingMore ? "Loading…" : "Load more"}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* History box */}
+          <div className="overflow-hidden rounded-xl border bg-white">
+            <div className="border-b px-4 py-4">
+              <span className="font-semibold">History</span>
+            </div>
+
+            {historyLoading ? (
+              <div className="animate-pulse divide-y">
+                {[0, 1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between px-4 py-3.5"
+                  >
+                    <div className="h-3 w-28 rounded bg-gray-200" />
+                    <div className="flex items-center gap-2">
+                      <div className="h-3 w-14 rounded bg-gray-200" />
+                      <div className="h-2.5 w-2.5 rounded-full bg-gray-200" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : !hasHistory ? (
+              <div className="flex flex-col items-center justify-center gap-1.5 px-6 py-12 text-center">
+                <p className="font-semibold">No History</p>
+                <p className="text-muted-foreground text-sm">
+                  Generated invoices will appear here
+                </p>
+              </div>
+            ) : (
+              <div className="divide-y">
+                {allHistory.map((item, index) => {
+                  const isSelected = !isLive && viewMode === item.invoice_uid
+                  const isLoadingThis = isSelected && historicalLoading
+                  return (
+                    <button
+                      key={item.uid}
+                      onClick={() => setViewMode(item.invoice_uid)}
+                      className={[
+                        "text-text-1 flex w-full cursor-pointer items-center justify-between border-l-2 py-3 pr-4 pl-3.5 text-left transition-all hover:bg-neutral-50",
+                        index % 2 === 0 ? "bg-neutral-100" : "",
+                        isSelected
+                          ? "border-primary bg-primary/10"
+                          : "border-transparent",
+                      ].join(" ")}
+                    >
+                      <span className="text-sm font-medium">
+                        {item.invoice.invoice_ref}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-text-1 text-xs">
+                          {fmtMonthYear(item.sent_at)}
+                        </span>
+                        {isLoadingThis ? (
+                          <Loader2 className="text-muted-foreground h-3 w-3 animate-spin" />
+                        ) : (
+                          <span
+                            className={[
+                              "h-2.5 w-2.5 rounded-full",
+                              item.was_successful
+                                ? "bg-green-500"
+                                : "bg-red-500",
+                            ].join(" ")}
+                          />
+                        )}
+                      </div>
+                    </button>
+                  )
+                })}
+                {historyHasMore && (
                   <button
-                    onClick={() => liveFetchMore()}
-                    disabled={liveFetchingMore}
+                    onClick={() => historyFetchMore()}
+                    disabled={historyFetchingMore}
                     className="text-muted-foreground flex w-full items-center justify-center gap-2 py-3 text-xs font-medium transition-colors hover:bg-neutral-50 disabled:opacity-50"
                   >
-                    {liveFetchingMore ? (
+                    {historyFetchingMore ? (
                       <Loader2 className="h-3 w-3 animate-spin" />
                     ) : null}
-                    {liveFetchingMore ? "Loading…" : "Load more"}
+                    {historyFetchingMore ? "Loading…" : "Load more"}
                   </button>
                 )}
               </div>
             )}
           </div>
-        )}
 
-        {/* History box */}
-        <div className="overflow-hidden rounded-xl border bg-white">
-          <div className="border-b px-4 py-4">
-            <span className="font-semibold">History</span>
-          </div>
-
-          {historyLoading ? (
-            <div className="animate-pulse divide-y">
-              {[0, 1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="flex items-center justify-between px-4 py-3.5"
-                >
-                  <div className="h-3 w-28 rounded bg-gray-200" />
-                  <div className="flex items-center gap-2">
-                    <div className="h-3 w-14 rounded bg-gray-200" />
-                    <div className="h-2.5 w-2.5 rounded-full bg-gray-200" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : !hasHistory ? (
-            <div className="flex flex-col items-center justify-center gap-1.5 px-6 py-12 text-center">
-              <p className="font-semibold">No History</p>
-              <p className="text-muted-foreground text-sm">
-                Generated invoices will appear here
-              </p>
-            </div>
-          ) : (
-            <div className="divide-y">
-              {allHistory.map((item, index) => {
-                const isSelected = !isLive && viewMode === item.invoice_uid
-                const isLoadingThis = isSelected && historicalLoading
-                return (
-                  <button
-                    key={item.uid}
-                    onClick={() => setViewMode(item.invoice_uid)}
-                    className={[
-                      "text-text-1 flex w-full cursor-pointer items-center justify-between border-l-2 py-3 pr-4 pl-3.5 text-left transition-all hover:bg-neutral-50",
-                      index % 2 === 0 ? "bg-neutral-100" : "",
-                      isSelected
-                        ? "border-primary bg-primary/10"
-                        : "border-transparent",
-                    ].join(" ")}
-                  >
-                    <span className="text-sm font-medium">
-                      {item.invoice.invoice_ref}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-text-1 text-xs">
-                        {fmtMonthYear(item.sent_at)}
-                      </span>
-                      {isLoadingThis ? (
-                        <Loader2 className="text-muted-foreground h-3 w-3 animate-spin" />
-                      ) : (
-                        <span
-                          className={[
-                            "h-2.5 w-2.5 rounded-full",
-                            item.was_successful ? "bg-green-500" : "bg-red-500",
-                          ].join(" ")}
-                        />
-                      )}
-                    </div>
-                  </button>
-                )
-              })}
-              {historyHasMore && (
-                <button
-                  onClick={() => historyFetchMore()}
-                  disabled={historyFetchingMore}
-                  className="text-muted-foreground flex w-full items-center justify-center gap-2 py-3 text-xs font-medium transition-colors hover:bg-neutral-50 disabled:opacity-50"
-                >
-                  {historyFetchingMore ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : null}
-                  {historyFetchingMore ? "Loading…" : "Load more"}
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Actions */}
-        <div className="rounded-xl border bg-white px-4 py-4">
-          {latestSend ? (
-            <div className="mb-3 space-y-0.5 text-sm">
-              <p className="text-muted-foreground">
-                Sent to{" "}
-                <span className="text-text-1 font-semibold">
-                  {latestSend.sent_to}
-                </span>
-              </p>
-              <p className="text-muted-foreground">
-                Sent on{" "}
-                <span className="text-text-1 font-semibold">
-                  {fmtDateTime(latestSend.sent_at)}
-                </span>
-              </p>
-            </div>
-          ) : (
-            <p className="mb-3 text-sm">
-              <span className="text-muted-foreground">Billing Email: </span>
-              <span className="font-semibold">{billingEmail}</span>
-            </p>
-          )}
-          <Button
-            variant={!isLive && !!historicalInvoice ? "primary" : "outlined"}
-            size="sm"
-            className="flex w-full items-center justify-center gap-2 rounded"
-            disabled={isLive || !historicalInvoice || isDownloading}
-            onClick={() =>
-              historicalInvoice &&
-              downloadPdf({
-                invoiceUid: historicalInvoice.uid,
-                invoiceRef: historicalInvoice.invoice_ref,
-              })
-            }
-          >
-            {isDownloading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+          {/* Actions */}
+          <div className="rounded-xl border bg-white px-4 py-4">
+            {latestSend ? (
+              <div className="mb-3 space-y-0.5 text-sm">
+                <p className="text-muted-foreground">
+                  Sent to{" "}
+                  <span className="text-text-1 font-semibold">
+                    {latestSend.sent_to}
+                  </span>
+                </p>
+                <p className="text-muted-foreground">
+                  Sent on{" "}
+                  <span className="text-text-1 font-semibold">
+                    {fmtDateTime(latestSend.sent_at)}
+                  </span>
+                </p>
+              </div>
             ) : (
-              <Download className="h-4 w-4" />
+              <p className="mb-3 text-sm">
+                <span className="text-muted-foreground">Billing Email: </span>
+                <span className="font-semibold">{billingEmail}</span>
+              </p>
             )}
-            {isDownloading ? "Downloading..." : "Download PDF"}
-          </Button>
+            <Button
+              variant={!isLive && !!historicalInvoice ? "primary" : "outlined"}
+              size="sm"
+              className="flex w-full items-center justify-center gap-2 rounded"
+              disabled={isLive || !historicalInvoice || isDownloading}
+              onClick={() =>
+                historicalInvoice &&
+                downloadPdf({
+                  invoiceUid: historicalInvoice.uid,
+                  invoiceRef: historicalInvoice.invoice_ref,
+                })
+              }
+            >
+              {isDownloading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+              {isDownloading ? "Downloading..." : "Download PDF"}
+            </Button>
+          </div>
         </div>
       </div>
     </div>
@@ -893,17 +961,7 @@ function SitePageInner() {
         </div>
 
         <div className="flex items-center gap-2">
-          {hasContract ? (
-            <Button
-              variant="outlined"
-              size="md"
-              className="gap-2 rounded-sm"
-              onClick={() => setEditOpen(true)}
-            >
-              <Edit className="h-4 w-4" />
-              Edit Contract
-            </Button>
-          ) : (
+          {!hasContract && (
             <Button
               variant="primary"
               size="md"
@@ -919,7 +977,6 @@ function SitePageInner() {
 
       {/* ── Two-section layout ── */}
       <div className="space-y-6">
-        {/* Invoice — always first */}
         <section>
           <h2 className="text-text-1 mb-3 font-semibold">Invoice</h2>
           <InvoiceSection
@@ -936,6 +993,15 @@ function SitePageInner() {
           <section className="overflow-hidden rounded-xl border bg-white">
             <div className="flex items-center justify-between border-b px-6 py-4">
               <h2 className="text-text-1 font-semibold">Contract Terms</h2>
+              <Button
+                variant="outlined"
+                size="md"
+                className="max-w-fit gap-2 rounded-sm"
+                onClick={() => setEditOpen(true)}
+              >
+                <Edit className="h-4 w-4" />
+                Edit Contract
+              </Button>
             </div>
             <ContractSection
               contractUid={contractUid}

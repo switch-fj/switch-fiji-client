@@ -277,7 +277,7 @@ export default function DashboardLayout({
       </Dialog>
 
       <main className="relative z-10 -mt-5 flex-1 overflow-y-auto rounded-t-3xl bg-[#fafafa] px-4 py-6 shadow-sm sm:px-6 sm:py-8">
-        <div className="border-border mx-auto h-full w-full max-w-[1440px] rounded-md border">
+        <div className="border-border mx-auto w-full max-w-[1440px] rounded-md border">
           {children}
         </div>
       </main>
