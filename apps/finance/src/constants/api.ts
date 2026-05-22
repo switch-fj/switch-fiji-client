@@ -40,6 +40,7 @@ export const INVOICE = {
 
 export const JOBRUN = {
   COMPUTE_INVOICE: "/api/v1/jobrun/invoice/compute",
+  LIST: "/api/v1/jobrun/user",
 } as const
 
 export const PORTFOLIO = {
