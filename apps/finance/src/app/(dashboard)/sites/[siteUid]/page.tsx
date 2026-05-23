@@ -518,11 +518,15 @@ function InvoiceSection({
             disabled={!periodStart || !periodEnd || computePending}
             onClick={() => {
               if (!periodStart || !periodEnd) return
+              const toUtcDay = (d: Date) =>
+                new Date(
+                  Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())
+                ).toISOString()
               computeInvoiceMutate(
                 {
                   contract_uid: contractUid,
-                  period_start: periodStart.toISOString(),
-                  period_end: periodEnd.toISOString(),
+                  period_start: toUtcDay(periodStart),
+                  period_end: toUtcDay(periodEnd),
                 },
                 {
                   onSuccess: () => {
