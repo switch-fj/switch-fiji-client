@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, type ReactNode } from "react"
+import { useState, useEffect, type ReactNode } from "react"
 import { Bell, CircleQuestionMark, LogOut } from "lucide-react"
 import { cn } from "../../lib/utils"
 import { Button } from "../ui/button"
@@ -21,6 +21,33 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu"
+
+function UtcClock() {
+  const [time, setTime] = useState(() => new Date())
+
+  useEffect(() => {
+    const id = setInterval(() => setTime(new Date()), 1000)
+    return () => clearInterval(id)
+  }, [])
+
+  const pad = (n: number) => String(n).padStart(2, "0")
+  const utc = `${pad(time.getUTCHours())}:${pad(time.getUTCMinutes())}:${pad(time.getUTCSeconds())}`
+  const date = time.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  })
+
+  return (
+    <div className="hidden flex-col items-end leading-tight md:flex">
+      <span className="font-mono text-xs font-semibold text-white">
+        {utc} UTC
+      </span>
+      <span className="text-[10px] text-[#A1A1A1]">{date}</span>
+    </div>
+  )
+}
 
 export type DashboardLink = {
   label: string
@@ -164,6 +191,8 @@ export default function DashboardLayout({
               </a>
             ))}
           </nav>
+
+          <UtcClock />
 
           <div className="ml-auto flex items-center gap-2">
             <Button
