@@ -37,6 +37,27 @@ function fmtDt(val: string | null | undefined) {
   }
 }
 
+function fmtD(val: string | null | undefined) {
+  if (!val) return "—"
+  try {
+    return format(new Date(val), "d MMM yyyy")
+  } catch {
+    return val
+  }
+}
+
+function parseMeta(meta: string | null): {
+  period_start?: string
+  period_end?: string
+} {
+  if (!meta) return {}
+  try {
+    return JSON.parse(meta)
+  } catch {
+    return {}
+  }
+}
+
 function StatusBadge({ status }: { status: JobRunStatus }) {
   return (
     <span
@@ -47,9 +68,14 @@ function StatusBadge({ status }: { status: JobRunStatus }) {
   )
 }
 
+const COLS = "grid-cols-[160px_130px_100px_1fr_1fr_1fr_1fr_90px]"
+
 function JobRow({ job }: { job: JobRunRespModel }) {
+  const meta = parseMeta(job.meta)
   return (
-    <div className="border-border grid grid-cols-[180px_150px_120px_1fr_1fr_1fr] items-start gap-4 border-t bg-white px-5 py-3 text-sm">
+    <div
+      className={`border-border grid ${COLS} items-start gap-4 border-t bg-white px-5 py-3 text-sm`}
+    >
       <span className="text-text-1 font-medium">
         {JOB_TYPE_LABEL[job.job_type] ?? job.job_type}
       </span>
@@ -57,10 +83,20 @@ function JobRow({ job }: { job: JobRunRespModel }) {
       <span className="text-muted-foreground font-mono text-xs">
         {job.task_id.slice(0, 8)}…
       </span>
+      <span className="text-text-1 text-xs">
+        {meta.period_start && meta.period_end
+          ? `${fmtD(meta.period_start)} – ${fmtD(meta.period_end)}`
+          : "—"}
+      </span>
       <span className="text-text-1">{fmtDt(job.created_at)}</span>
       <span className="text-text-1">{fmtDt(job.started_at)}</span>
       <span className={job.error ? "text-destructive text-xs" : "text-text-1"}>
         {job.error ?? fmtDt(job.completed_at)}
+      </span>
+      <span
+        className={`text-xs font-medium ${job.result_uid && job.result_uid !== "None" ? "text-green-600" : "text-muted-foreground"}`}
+      >
+        {job.result_uid && job.result_uid !== "None" ? "Found" : "Not Found"}
       </span>
     </div>
   )
@@ -126,13 +162,17 @@ function JobsPageInner() {
       {/* Table */}
       <div className="border-border overflow-hidden rounded-xl border">
         {/* Header row */}
-        <div className="bg-blue/40 grid grid-cols-[180px_150px_120px_1fr_1fr_1fr] gap-4 px-5 py-2.5 text-xs font-semibold text-[#2C6B6B]">
+        <div
+          className={`bg-blue/40 grid ${COLS} gap-4 px-5 py-2.5 text-xs font-semibold text-[#2C6B6B]`}
+        >
           <span>Job Type</span>
           <span>Status</span>
           <span>Task ID</span>
+          <span>Period</span>
           <span>Created</span>
           <span>Started</span>
           <span>Completed / Error</span>
+          <span>Result</span>
         </div>
 
         {isLoading && (

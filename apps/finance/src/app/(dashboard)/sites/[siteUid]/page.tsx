@@ -808,7 +808,8 @@ function InvoiceSection({
                       ].join(" ")}
                     >
                       <span className="text-sm font-medium">
-                        {item.invoice.invoice_ref}
+                        {fmtDate(item.invoice.period_start_at)} –{" "}
+                        {fmtDate(item.invoice.period_end_at)}
                       </span>
                       <div className="flex items-center gap-2">
                         <span className="text-text-1 text-xs">
