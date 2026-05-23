@@ -192,8 +192,6 @@ export default function DashboardLayout({
             ))}
           </nav>
 
-          <UtcClock />
-
           <div className="ml-auto flex items-center gap-2">
             <Button
               variant="ghost"
