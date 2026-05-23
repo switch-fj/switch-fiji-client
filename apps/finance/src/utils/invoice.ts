@@ -40,6 +40,19 @@ export function fmtDateTime(
   })
 }
 
+// Use for period_start_at / period_end_at — reads the date portion directly
+// from the ISO string so T23:59:59 end-of-day never shifts to the next day.
+export function fmtPeriodDate(iso: string, dateFmt: DateFmt = "dmy") {
+  const locale = dateFmt === "mdy" ? "en-US" : "en-GB"
+  const datePart = iso.split("T")[0] // "2026-05-20"
+  return new Date(`${datePart}T00:00:00Z`).toLocaleDateString(locale, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  })
+}
+
 export function fmtAmount(value: string | number) {
   return `$${parseFloat(String(value)).toFixed(2)}`
 }

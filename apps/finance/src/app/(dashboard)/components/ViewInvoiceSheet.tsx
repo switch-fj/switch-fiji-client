@@ -39,7 +39,7 @@ export default function ViewInvoiceSheet({
   contractUid,
 }: Props) {
   const { SettingsStore } = useStore()
-  const { fmtDate, fmtMonthYear, fmtDateTime } = useInvoiceFormatters()
+  const { fmtPeriodDate, fmtMonthYear, fmtDateTime } = useInvoiceFormatters()
   const [searchQuery, setSearchQuery] = useState("")
 
   useEffect(() => {
@@ -141,8 +141,8 @@ export default function ViewInvoiceSheet({
                         <div className="h-3 w-44 animate-pulse rounded bg-gray-200" />
                       ) : hasInvoice ? (
                         <span>
-                          {fmtDate(invoice.period_start_at)} –{" "}
-                          {fmtDate(invoice.period_end_at)}
+                          {fmtPeriodDate(invoice.period_start_at)} –{" "}
+                          {fmtPeriodDate(invoice.period_end_at)}
                         </span>
                       ) : (
                         <span>--</span>

@@ -408,7 +408,7 @@ function InvoiceSection({
   const [liveSnapshotUid, setLiveSnapshotUid] = useState<string | null>(null)
 
   const {
-    fmtDate,
+    fmtPeriodDate,
     fmtMonthYear,
     fmtDateTime,
     datePickerFormat,
@@ -518,16 +518,11 @@ function InvoiceSection({
             disabled={!periodStart || !periodEnd || computePending}
             onClick={() => {
               if (!periodStart || !periodEnd) return
-              const pad = (n: number) => String(n).padStart(2, "0")
-              const toUtcDay = (d: Date, eod: boolean) => {
-                const ymd = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-                return eod ? `${ymd}T23:59:59.999Z` : `${ymd}T00:00:00.000Z`
-              }
               computeInvoiceMutate(
                 {
                   contract_uid: contractUid,
-                  period_start: toUtcDay(periodStart, false),
-                  period_end: toUtcDay(periodEnd, true),
+                  period_start: periodStart.toISOString(),
+                  period_end: periodEnd.toISOString(),
                 },
                 {
                   onSuccess: () => {
@@ -559,8 +554,8 @@ function InvoiceSection({
                   <div className="h-3 w-44 animate-pulse rounded bg-gray-200" />
                 ) : hasInvoice ? (
                   <span>
-                    {fmtDate(displayInvoice.period_start_at)} –{" "}
-                    {fmtDate(displayInvoice.period_end_at)}
+                    {fmtPeriodDate(displayInvoice.period_start_at)} –{" "}
+                    {fmtPeriodDate(displayInvoice.period_end_at)}
                   </span>
                 ) : (
                   <span>--</span>
@@ -808,8 +803,8 @@ function InvoiceSection({
                       ].join(" ")}
                     >
                       <span className="text-sm font-medium">
-                        {fmtDate(item.invoice.period_start_at)} –{" "}
-                        {fmtDate(item.invoice.period_end_at)}
+                        {fmtPeriodDate(item.invoice.period_start_at)} –{" "}
+                        {fmtPeriodDate(item.invoice.period_end_at)}
                       </span>
                       <div className="flex items-center gap-2">
                         <span className="text-text-1 text-xs">
