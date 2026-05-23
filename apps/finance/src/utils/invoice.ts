@@ -9,6 +9,7 @@ export function fmtDate(iso: string, dateFmt: DateFmt = "dmy") {
     day: "numeric",
     month: "short",
     year: "numeric",
+    timeZone: "UTC",
   })
 }
 
@@ -17,6 +18,7 @@ export function fmtMonthYear(iso: string, dateFmt: DateFmt = "dmy") {
   return new Date(iso).toLocaleDateString(locale, {
     month: "short",
     year: "numeric",
+    timeZone: "UTC",
   })
 }
 
@@ -33,6 +35,7 @@ export function fmtDateTime(
     hour: "2-digit",
     minute: "2-digit",
     hour12: timeFmt === "12",
+    timeZone: "UTC",
   })
 }
 
