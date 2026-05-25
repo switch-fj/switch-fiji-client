@@ -79,7 +79,7 @@ function DashboardViewInner() {
           <div className="flex items-center justify-between border-b pb-2">
             <span className="text-text-1 text-lg font-semibold">Sites</span>
             <span className="text-text-1 text-xs">
-              selecr a client to view site
+              select a client to view site
             </span>
           </div>
 

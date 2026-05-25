@@ -28,6 +28,7 @@ import { uniqueByInvoiceUid } from "@/utils/invoice"
 import { EnumContractType, EnumContractSystemMode } from "@/constants/mangle"
 import { getCombo, VIS, DAY_LABEL } from "@/constants/contract"
 import type { ContractDetailsRespModel, TariffRespModel } from "@/types/site"
+import EnergyMixCard from "@/app/(dashboard)/components/EnergyMixCard"
 import InvoiceLineItemsTable from "@/app/(dashboard)/components/InvoiceLineItemsTable"
 import InvoiceMeterDataTable from "@/app/(dashboard)/components/InvoiceMeterDataTable"
 import ContractSummaryBar from "@/app/(dashboard)/components/ContractSummaryBar"
@@ -400,12 +401,10 @@ function InvoiceSection({
   billingEmail: string
   contractCombo: ReturnType<typeof getCombo>
 }) {
-  // "live" = show live snapshots panel; any other string = selected historical invoice uid
+  // "live" = show live snapshot; any other string = selected historical invoice uid
   const [viewMode, setViewMode] = useState<"live" | string>("live")
   const isLive = viewMode === "live"
-
-  // For live mode: which snapshot uid is selected (null = latest / first)
-  const [liveSnapshotUid, setLiveSnapshotUid] = useState<string | null>(null)
+  const [browseDate, setBrowseDate] = useState<Date | undefined>()
 
   const {
     fmtPeriodDate,
@@ -430,70 +429,80 @@ function InvoiceSection({
     fetchNextPage: historyFetchMore,
   } = useGetInvoiceHistory(contractUid)
 
-  const {
-    data: liveData,
-    isLoading: liveLoading,
-    isFetchingNextPage: liveFetchingMore,
-    hasNextPage: liveHasMore,
-    fetchNextPage: liveFetchMore,
-  } = useGetLiveInvoice(contractUid)
+  const { data: liveData, isLoading: liveLoading } =
+    useGetLiveInvoice(contractUid)
 
   const { data: historicalInvoice, isLoading: historicalLoading } =
     useGetInvoice(isLive ? null : viewMode)
 
-  // Flatten paginated pages
   const allHistory = historyData
     ? uniqueByInvoiceUid(historyData.pages.flatMap((p) => p.data?.items ?? []))
     : []
   const allSnapshots = liveData
     ? liveData.pages.flatMap((p) => p.data?.items ?? [])
     : []
+  const liveSnapshot = allSnapshots[0] ?? null
 
   const hasHistory = allHistory.length > 0
-
-  // Resolve which live snapshot to display
-  const liveSnapshot =
-    allSnapshots.length > 0
-      ? (allSnapshots.find((s) => s.uid === liveSnapshotUid) ?? allSnapshots[0])
-      : null
-
   const displayInvoice = isLive ? liveSnapshot : historicalInvoice
   const invoiceLoading = isLive ? liveLoading : historicalLoading
   const hasInvoice = !!displayInvoice && !invoiceLoading
-
-  const historicalForActions = isLive ? null : historicalInvoice
-  const latestSend = historicalForActions?.history?.[0] ?? null
-
-  // Group live snapshots by calendar date (using period_start_at)
-  type SnapshotItem = (typeof allSnapshots)[number]
-  type DateGroup = { dateKey: string; label: string; snapshots: SnapshotItem[] }
-  const dateGroups: DateGroup[] = []
-  {
-    const seen = new Map<string, DateGroup>()
-    for (const snap of allSnapshots) {
-      const d = new Date(snap.period_start_at)
-      const dateKey = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`
-      if (!seen.has(dateKey)) {
-        const group: DateGroup = {
-          dateKey,
-          label: format(
-            new Date(
-              Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
-            ),
-            "d MMM yyyy"
-          ),
-          snapshots: [],
-        }
-        seen.set(dateKey, group)
-        dateGroups.push(group)
-      }
-      seen.get(dateKey)!.snapshots.push(snap)
-    }
-  }
+  const latestSend = historicalInvoice?.history?.[0] ?? null
 
   return (
     <div className="flex flex-col gap-4">
       {contractUid && (
+        <div className="flex items-center gap-3 rounded-xl border bg-white px-5 py-3">
+          <span className="text-text-1 shrink-0 text-sm font-semibold">
+            Browse
+          </span>
+          <DatePickerInput
+            value={browseDate}
+            onChange={(d) => {
+              setBrowseDate(d)
+              if (!d) {
+                setViewMode("live")
+                return
+              }
+              const ts = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())
+              const match = allHistory.find((item) => {
+                const start = new Date(item.invoice.period_start_at).getTime()
+                const end = new Date(item.invoice.period_end_at).getTime()
+                return ts >= start && ts <= end
+              })
+              if (match) setViewMode(match.invoice_uid)
+            }}
+            dateFormat={datePickerFormat}
+            placeholder={datePickerPlaceholder}
+          />
+          {browseDate &&
+            !allHistory.find((item) => {
+              const ts = Date.UTC(
+                browseDate.getFullYear(),
+                browseDate.getMonth(),
+                browseDate.getDate()
+              )
+              return (
+                ts >= new Date(item.invoice.period_start_at).getTime() &&
+                ts <= new Date(item.invoice.period_end_at).getTime()
+              )
+            }) && (
+              <span className="text-muted-foreground text-xs">
+                No invoice found for this date
+              </span>
+            )}
+          <button
+            onClick={() => {
+              setBrowseDate(undefined)
+              setViewMode("live")
+            }}
+            className="text-muted-foreground ml-auto shrink-0 text-xs underline"
+          >
+            Back to live
+          </button>
+        </div>
+      )}
+      {/* {contractUid && (
         <div className="flex items-center gap-3 rounded-xl border bg-white px-5 py-4">
           <span className="text-text-1 shrink-0 text-sm font-semibold">
             Compute Invoice
@@ -540,11 +549,10 @@ function InvoiceSection({
             {computePending ? "Computing…" : "Compute"}
           </Button>
         </div>
-      )}
+      )} */}
       <div className="grid grid-cols-[minmax(0,1fr)_340px] gap-4">
         {/* ── Left: invoice card ── */}
         <div className="overflow-hidden rounded-xl border bg-white">
-          {/* Card header */}
           <div className="grid grid-cols-[1fr_auto] gap-8 border-b px-6 py-5">
             <div className="space-y-2">
               <img
@@ -591,34 +599,6 @@ function InvoiceSection({
             </div>
           </div>
 
-          {/* Date pills for live snapshots */}
-          {isLive && !liveLoading && dateGroups.length > 1 && (
-            <div className="flex gap-2 overflow-x-auto border-b px-6 py-3">
-              {dateGroups.map((group) => {
-                const isActive = group.snapshots.some((s) =>
-                  liveSnapshotUid
-                    ? s.uid === liveSnapshotUid
-                    : s === allSnapshots[0]
-                )
-                return (
-                  <button
-                    key={group.dateKey}
-                    onClick={() => setLiveSnapshotUid(group.snapshots[0].uid)}
-                    className={[
-                      "shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-                      isActive
-                        ? "border-green-500 bg-green-100 text-green-700"
-                        : "border-border text-text-1 bg-white hover:bg-neutral-100",
-                    ].join(" ")}
-                  >
-                    {group.label}
-                  </button>
-                )
-              })}
-            </div>
-          )}
-
-          {/* Card body */}
           <div className="px-6 py-5">
             {invoiceLoading ? (
               <div className="animate-pulse space-y-4">
@@ -654,7 +634,9 @@ function InvoiceSection({
                   No data yet
                 </p>
                 <p className="text-muted-foreground text-sm">
-                  Live invoice data will appear here once available.
+                  {isLive
+                    ? "Live invoice data will appear here once available."
+                    : "Select an invoice from history to view it."}
                 </p>
               </div>
             ) : (
@@ -669,97 +651,18 @@ function InvoiceSection({
           </div>
         </div>
 
-        {/* ── Right: live snapshots + history + actions ── */}
+        {/* ── Right: energy mix + history + actions ── */}
         <div className="flex flex-col gap-4">
-          {/* Live snapshots box */}
-          {contractUid && (
-            <div className="flex max-h-72 flex-col overflow-hidden rounded-xl border bg-white">
-              <div className="flex shrink-0 items-center justify-between border-b px-4 py-4">
-                <span className="flex items-center gap-2 font-semibold">
-                  <span className="h-2 w-2 rounded-full bg-green-500" />
-                  Live
-                </span>
-                {liveLoading && (
-                  <Loader2 className="text-muted-foreground h-3.5 w-3.5 animate-spin" />
-                )}
-              </div>
-
-              {liveLoading ? (
-                <div className="animate-pulse divide-y">
-                  {[0, 1, 2].map((i) => (
-                    <div
-                      key={i}
-                      className="flex items-center justify-between px-4 py-3"
-                    >
-                      <div className="h-3 w-20 rounded bg-gray-200" />
-                      <div className="h-3 w-16 rounded bg-gray-200" />
-                    </div>
-                  ))}
-                </div>
-              ) : dateGroups.length === 0 ? (
-                <div className="text-muted-foreground px-4 py-6 text-center text-sm">
-                  No live data yet
-                </div>
-              ) : (
-                <div className="overflow-y-auto">
-                  <div className="divide-y">
-                    {dateGroups.map((group) => (
-                      <div key={group.dateKey}>
-                        <div className="text-muted-foreground bg-neutral-50 px-4 py-1.5 text-[11px] font-semibold tracking-wide uppercase">
-                          {group.label}
-                        </div>
-                        {group.snapshots.map((snap, index) => {
-                          const isActive =
-                            isLive &&
-                            (liveSnapshotUid === snap.uid ||
-                              (!liveSnapshotUid && snap === allSnapshots[0]))
-                          const s = new Date(snap.period_start_at)
-                          const e = new Date(snap.period_end_at)
-                          const startTime = `${String(s.getUTCHours()).padStart(2, "0")}:${String(s.getUTCMinutes()).padStart(2, "0")}`
-                          const endTime = `${String(e.getUTCHours()).padStart(2, "0")}:${String(e.getUTCMinutes()).padStart(2, "0")}`
-                          return (
-                            <button
-                              key={snap.uid}
-                              onClick={() => {
-                                setViewMode("live")
-                                setLiveSnapshotUid(snap.uid)
-                              }}
-                              className={[
-                                "flex w-full items-center justify-between border-l-2 py-2.5 pr-4 pl-3.5 text-left transition-all hover:bg-green-50",
-                                index % 2 === 0 ? "bg-white" : "bg-neutral-50",
-                                isActive
-                                  ? "border-green-500 bg-green-50"
-                                  : "border-transparent",
-                              ].join(" ")}
-                            >
-                              <span className="text-text-1 text-xs font-medium">
-                                {startTime} – {endTime}
-                              </span>
-                              <span className="text-muted-foreground text-xs">
-                                {snap.total}
-                              </span>
-                            </button>
-                          )
-                        })}
-                      </div>
-                    ))}
-                  </div>
-                  {liveHasMore && (
-                    <button
-                      onClick={() => liveFetchMore()}
-                      disabled={liveFetchingMore}
-                      className="text-muted-foreground flex w-full items-center justify-center gap-2 py-3 text-xs font-medium transition-colors hover:bg-neutral-50 disabled:opacity-50"
-                    >
-                      {liveFetchingMore ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                      ) : null}
-                      {liveFetchingMore ? "Loading…" : "Load more"}
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+          {/* Energy mix card */}
+          <EnergyMixCard
+            energyMix={displayInvoice?.energy_mix ?? null}
+            isLoading={invoiceLoading && !!viewMode}
+            periodLabel={
+              hasInvoice
+                ? `${fmtPeriodDate(displayInvoice.period_start_at)} – ${fmtPeriodDate(displayInvoice.period_end_at)}`
+                : undefined
+            }
+          />
 
           {/* History box */}
           <div className="overflow-hidden rounded-xl border bg-white">
@@ -792,7 +695,7 @@ function InvoiceSection({
             ) : (
               <div className="divide-y">
                 {allHistory.map((item, index) => {
-                  const isSelected = !isLive && viewMode === item.invoice_uid
+                  const isSelected = viewMode === item.invoice_uid
                   const isLoadingThis = isSelected && historicalLoading
                   return (
                     <button
@@ -870,10 +773,10 @@ function InvoiceSection({
               </p>
             )}
             <Button
-              variant={!isLive && !!historicalInvoice ? "primary" : "outlined"}
+              variant={!!historicalInvoice ? "primary" : "outlined"}
               size="sm"
               className="flex w-full items-center justify-center gap-2 rounded"
-              disabled={isLive || !historicalInvoice || isDownloading}
+              disabled={!historicalInvoice || isDownloading}
               onClick={() =>
                 historicalInvoice &&
                 downloadPdf({
