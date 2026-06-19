@@ -1,6 +1,6 @@
 export const AUTH = {
   LOGIN: "/auth/login",
-  REGISTER: "/auth/register",
+  REGISTER: "/api/v1/auth/register",
   OTP: "/auth/verify-otp",
   GET_PROFILE: "/auth/profile",
   NEW_ACCESS_TOKEN: "/auth/refresh-token",
@@ -45,6 +45,10 @@ export const JOBRUN = {
 
 export const PORTFOLIO = {
   STATS: "/api/v1/admin/portfolio/stats",
+} as const
+
+export const ENGINEER = {
+  LIST: "/api/v1/admin/users",
 } as const
 
 export const SETTINGS = {

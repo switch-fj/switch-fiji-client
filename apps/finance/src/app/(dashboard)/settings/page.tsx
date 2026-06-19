@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import RegisterEngineerModal from "../components/RegisterEngineerModal"
 import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { CheckCircle } from "lucide-react"
@@ -21,6 +22,8 @@ import FormField from "./FormField"
 import SettingsSelect from "./SettingsSelect"
 import NotificationRow from "./NotificationRow"
 import RateHistoryTable from "./RateHistoryTable"
+import UsersTable from "./UsersTable"
+import { useUsers } from "@/hooks/useEngineer"
 
 function toFormValues(s: ContractSettingsRespModel): ContractSettingsInput {
   return {
@@ -45,6 +48,8 @@ const SettingsPage = observer(() => {
   const { SettingsStore } = useStore()
 
   const [formReady, setFormReady] = useState(false)
+  const [registerModalOpen, setRegisterModalOpen] = useState(false)
+  const { data: usersData, isLoading: usersLoading } = useUsers()
 
   const {
     register,
@@ -277,6 +282,37 @@ const SettingsPage = observer(() => {
           </div>
         </div>
       </div>
+
+      {/* Engineer access */}
+      <div className="border-t px-8 py-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold">Engineer Access</h2>
+            <p className="text-text-1 mt-1 text-sm">
+              Invite an engineer to the platform.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outlined"
+            className="max-w-42"
+            size="md"
+            onClick={() => setRegisterModalOpen(true)}
+          >
+            Register Engineer
+          </Button>
+        </div>
+        <div className="mt-6">
+          <UsersTable
+            users={usersData?.data.items ?? []}
+            isLoading={usersLoading}
+          />
+        </div>
+      </div>
+      <RegisterEngineerModal
+        open={registerModalOpen}
+        onClose={() => setRegisterModalOpen(false)}
+      />
     </div>
   )
 })
