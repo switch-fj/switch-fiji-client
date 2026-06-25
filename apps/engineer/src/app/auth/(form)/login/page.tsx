@@ -1,17 +1,57 @@
-"use client";
+"use client"
 
-import { LoginView } from "@workspace/auth";
-import { useLogin, useVerifyLogin } from "@/hooks/useAuth";
+import { LoadingView, LoginView } from "@workspace/auth"
+import { observer } from "mobx-react-lite"
+import { useRouter } from "next/navigation"
+import { useEffect } from "react"
+import { toast } from "sonner"
+import { useStore } from "@/store"
 
-export default function EngineerLoginPage() {
-  const { login, isLoading: isLoginLoading } = useLogin();
-  const { verifyLogin, isLoading: isVerifyLoading } = useVerifyLogin();
+const EngineerLoginPage = observer(() => {
+  const { AuthStore } = useStore()
+  const router = useRouter()
+  const isSubmitting = AuthStore.isLoading.login || AuthStore.isLoading.verify
+
+  useEffect(() => {
+    if (AuthStore.accessToken) {
+      router.replace("/")
+    }
+  }, [AuthStore.accessToken, router])
+
+  const handleAuthSuccess = async (response: { message: string }) => {
+    toast.success(response.message || "Login successful.")
+    try {
+      await AuthStore.fetchProfile()
+    } catch {
+      toast.error("Unable to load profile. Please try again.")
+    }
+    router.replace("/")
+  }
+
+  const handleAuthError = (message: string) => {
+    toast.error(message || "Login failed.")
+  }
 
   return (
-    <LoginView
-      login={login}
-      verifyLogin={verifyLogin}
-      isSubmitting={isLoginLoading || isVerifyLoading}
-    />
-  );
-}
+    <div className="relative flex w-full justify-center">
+      <div
+        className={isSubmitting ? "invisible" : "flex w-full justify-center"}
+      >
+        <LoginView
+          login={AuthStore.login}
+          verifyLogin={AuthStore.verifyLogin}
+          onAuthSuccess={handleAuthSuccess}
+          onAuthError={handleAuthError}
+          isSubmitting={isSubmitting}
+        />
+      </div>
+      {isSubmitting ? (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <LoadingView />
+        </div>
+      ) : null}
+    </div>
+  )
+})
+
+export default EngineerLoginPage
