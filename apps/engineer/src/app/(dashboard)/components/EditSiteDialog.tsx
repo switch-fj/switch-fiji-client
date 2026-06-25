@@ -108,7 +108,7 @@ export function EditSiteDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isPending}>
+          <Button variant="outlined" onClick={onClose} disabled={isPending}>
             Cancel
           </Button>
           <Button onClick={handleSave} disabled={isPending}>
