@@ -1,13 +1,13 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { Suspense, useEffect, useRef, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { VerifyView } from "@workspace/auth"
 import { useVerifyAccount } from "@/hooks/useAuth"
 
 type VerifyStatus = "loading" | "success" | "error"
 
-export default function EngineerVerifyPage() {
+function VerifyContent() {
   const searchParams = useSearchParams()
   const token = searchParams.get("token")
   const { verifyAccount } = useVerifyAccount()
@@ -36,4 +36,12 @@ export default function EngineerVerifyPage() {
   }, [token, verifyAccount])
 
   return <VerifyView status={status} errorMessage={errorMessage} />
+}
+
+export default function EngineerVerifyPage() {
+  return (
+    <Suspense fallback={<VerifyView status="loading" errorMessage={null} />}>
+      <VerifyContent />
+    </Suspense>
+  )
 }

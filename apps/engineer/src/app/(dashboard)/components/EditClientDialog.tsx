@@ -83,7 +83,7 @@ export function EditClientDialog({
           <Button variant="outlined" onClick={onClose} disabled={isPending}>
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={isPending}>
+          <Button variant="primary" onClick={handleSave} disabled={isPending}>
             {isPending ? "Saving…" : "Save"}
           </Button>
         </DialogFooter>
