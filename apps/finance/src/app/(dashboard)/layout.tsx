@@ -13,8 +13,9 @@ import {
 } from "@/utils/date"
 
 function useClock() {
-  const [now, setNow] = useState(() => new Date())
+  const [now, setNow] = useState<Date | null>(null)
   useEffect(() => {
+    setNow(new Date())
     const id = setInterval(() => setNow(new Date()), 1000)
     return () => clearInterval(id)
   }, [])
@@ -54,7 +55,7 @@ function TzTester() {
       {/* UTC clock */}
       <div className="flex flex-col items-center gap-0.5">
         <span className="font-mono text-xs font-bold text-white tabular-nums">
-          {formatClock(now, "UTC")}
+          {now ? formatClock(now, "UTC") : "--:--:--"}
         </span>
         <span className="text-[9px] font-medium tracking-widest text-[#A1A1A1] uppercase">
           UTC
@@ -68,7 +69,7 @@ function TzTester() {
         <span
           className={`font-mono text-xs font-bold tabular-nums ${isOverridden ? "text-yellow-300" : "text-white"}`}
         >
-          {formatClock(now, localTz)}
+          {now ? formatClock(now, localTz) : "--:--:--"}
         </span>
         <span
           className={`text-[9px] font-medium tracking-widest uppercase ${isOverridden ? "text-yellow-400" : "text-[#A1A1A1]"}`}
