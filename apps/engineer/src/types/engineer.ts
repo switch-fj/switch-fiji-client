@@ -58,3 +58,131 @@ export type UpdateSiteInput = {
   gateway_id?: string | null
   firmware?: string | null
 }
+
+export type SitePvSummary = {
+  uid: string
+  created_at: string
+  updated_at: string
+  site_uid: string
+  user_uid: string
+  commissioned_at: string
+  expected_production_kwh: string
+  system_size_kwp: string
+  year1_degradation: number
+  year2plus_degradation: number
+}
+
+export type SitePvSummaryInput = {
+  commissioned_at: string
+  expected_production_kwh: number | string
+  system_size_kwp: number | string
+  year1_degradation: number
+  year2plus_degradation: number
+}
+
+export type UpdateSitePvSummaryInput = SitePvSummaryInput & { uid: string }
+
+export type SitePvDegradation = {
+  uid: string
+  created_at: string
+  updated_at: string
+  site_uid: string
+  user_uid: string
+  /** JSON-encoded degradation table */
+  degradation: string
+}
+
+export type SiteDegradationInput = {
+  monthly_kwh_values: number[]
+}
+
+export type SitePanelRef = {
+  uid: string
+  created_at: string
+  updated_at: string
+  site_uid: string
+  user_uid: string
+  panel_type: string
+  watt: number
+  vmp: number
+  voc: number
+  imp: number
+}
+
+export type PanelRefItemInput = {
+  panel_type: string
+  watt: number
+  vmp: number
+  voc: number
+  imp: number
+}
+
+export type UpdatePanelRefItemInput = PanelRefItemInput & { uid: string }
+
+export type StringWiringItemInput = {
+  inverter: number
+  mppt: number
+  string_id: number
+  panel_ref_uid: string
+  panel_qty: number
+}
+
+export type SiteStringWiring = {
+  uid: string
+  created_at: string
+  updated_at: string
+  site_uid: string
+  user_uid: string
+  /** JSON-encoded array of the raw StringWiringItemInput rows — used to
+   * prefill the edit form. */
+  string_input: string
+  /** JSON-encoded array of server-computed per-string rows — used to
+   * render the String Summary table. */
+  wring_schematics: string | null
+  mppt_fn_table: string | null
+  expected_mppt_a_table: string | null
+}
+
+export type StringWiringSchematicItem = {
+  inverter: number
+  mppt: number
+  string_id: number
+  panel_ref_uid: string
+  panel_watt: number
+  panel_qty: number
+  panel_voc: number
+  panel_vmp: number
+  ip: number
+  string_identity: string
+  watt: number
+  voc: number
+  vmp: number
+  mppt_key: string
+}
+
+export type MpptFunctionRow = {
+  inverter: number
+  mppt: number
+  mppt_key: string
+  mppt_p_kw: number
+  mppt_ip: number
+  mppt_vp: number
+}
+
+export type ExpectedMpptARow = {
+  ir_wm2: number
+  mppt_key: string
+  expected_ip: number
+}
+
+export type SiteDeviceModel = {
+  uid: string
+  created_at: string
+  updated_at: string
+  site_uid: string
+  slave_id: number
+  device_type: string
+  meter_role: string | null
+  is_dual_tariff: boolean | null
+  last_seen_at: string | null
+}

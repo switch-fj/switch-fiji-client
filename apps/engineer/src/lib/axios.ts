@@ -5,6 +5,7 @@ import {
   type ServerResponse,
   type TokenModel,
 } from "@workspace/api"
+import { AUTH } from "@/constants/api"
 
 const baseURL = getApiBaseUrl().replace(/\/api\/v1\/?$/, "")
 
@@ -50,7 +51,7 @@ api.interceptors.response.use(
 
       try {
         const { data } = await axios.post<ServerResponse<TokenModel>>(
-          `${getApiBaseUrl()}/auth/new-access-token`,
+          `${baseURL}${AUTH.NEW_ACCESS_TOKEN}`,
           null,
           { withCredentials: true }
         )

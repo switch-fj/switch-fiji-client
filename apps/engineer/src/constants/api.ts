@@ -15,3 +15,14 @@ export const ENGINEER = {
   UPDATE_CLIENT: (clientUid: string) => `/api/v1/engineer/client/${clientUid}`,
   UPDATE_SITE: "/api/v1/engineer/site",
 } as const
+
+export const SITE = {
+  PVS: (siteUid: string) => `/api/v1/sites/${siteUid}/pvs`,
+  DEGRADATION: (siteUid: string) => `/api/v1/sites/${siteUid}/degradation`,
+  PANELS: (siteUid: string) => `/api/v1/sites/${siteUid}/panels`,
+  STRING_WIRING: (siteUid: string) => `/api/v1/sites/${siteUid}/string-wiring`,
+} as const
+
+export const DEVICE = {
+  BY_SITE: (siteUid: string) => `/api/v1/device/site/${siteUid}`,
+} as const

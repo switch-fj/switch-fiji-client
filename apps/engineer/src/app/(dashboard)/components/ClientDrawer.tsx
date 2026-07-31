@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { X, Pencil } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { X, Pencil, Eye } from "lucide-react"
 import type {
   EngineeringDashboardClient,
   EngineeringDashboardSite,
@@ -26,6 +27,7 @@ type ClientDrawerProps = {
 }
 
 export function ClientDrawer({ client, onClose }: ClientDrawerProps) {
+  const router = useRouter()
   const [editClientOpen, setEditClientOpen] = useState(false)
   const [editSite, setEditSite] = useState<EngineeringDashboardSite | null>(
     null
@@ -170,13 +172,26 @@ export function ClientDrawer({ client, onClose }: ClientDrawerProps) {
                               />
                             </td>
                             <td className="px-4 py-3 text-right">
-                              <button
-                                onClick={() => setEditSite(site)}
-                                className="text-muted-foreground hover:bg-muted hover:text-foreground rounded p-1 transition-colors"
-                                title="Edit site"
-                              >
-                                <Pencil className="h-3.5 w-3.5" />
-                              </button>
+                              <div className="flex items-center justify-end gap-1">
+                                <button
+                                  onClick={() =>
+                                    router.push(
+                                      `/sites/${site.uid}?name=${encodeURIComponent(site.site_name ?? "Site")}`
+                                    )
+                                  }
+                                  className="text-muted-foreground hover:bg-muted hover:text-foreground rounded p-1 transition-colors"
+                                  title="View site"
+                                >
+                                  <Eye className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => setEditSite(site)}
+                                  className="text-muted-foreground hover:bg-muted hover:text-foreground rounded p-1 transition-colors"
+                                  title="Edit site"
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         )
