@@ -3,6 +3,7 @@
 import * as React from "react"
 import { format } from "date-fns"
 import { CalendarDays, CalendarPlus2 } from "lucide-react"
+import type { Matcher } from "react-day-picker"
 
 import { cn } from "../../lib/utils"
 import { Button } from "./button"
@@ -17,6 +18,9 @@ type DatePickerInputProps = {
   /** Format string for date-fns. Defaults to "MM/dd/yyyy". */
   dateFormat?: string
   disabled?: boolean
+  /** Dates the calendar should refuse to let the user pick, e.g.
+   * `{ before: minDate, after: maxDate }`. Any react-day-picker Matcher. */
+  disabledDates?: Matcher | Matcher[]
   className?: string
   /** Any lucide-react icon component. Defaults to CalendarDays. */
   icon?: React.ElementType
@@ -28,6 +32,7 @@ function DatePickerInput({
   placeholder = "12/25/2025",
   dateFormat = "MM/dd/yyyy",
   disabled = false,
+  disabledDates,
   className,
   icon: Icon = CalendarDays,
 }: DatePickerInputProps) {
@@ -55,6 +60,7 @@ function DatePickerInput({
           mode="single"
           selected={value}
           onSelect={onChange}
+          disabled={disabledDates}
           initialFocus
         />
       </PopoverContent>

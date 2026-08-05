@@ -21,6 +21,8 @@ export const SITE = {
   DEGRADATION: (siteUid: string) => `/api/v1/sites/${siteUid}/degradation`,
   PANELS: (siteUid: string) => `/api/v1/sites/${siteUid}/panels`,
   STRING_WIRING: (siteUid: string) => `/api/v1/sites/${siteUid}/string-wiring`,
+  MPPT_FUNCTION_CHECK: (siteUid: string) =>
+    `/api/v1/sites/${siteUid}/mppt-function-check`,
 } as const
 
 export const DEVICE = {

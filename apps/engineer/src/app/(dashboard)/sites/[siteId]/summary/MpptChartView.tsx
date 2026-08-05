@@ -2,13 +2,15 @@
 
 import { Fragment, useState } from "react"
 import { ChevronDown, ChevronLeft, ChevronUp, Pencil, Plus } from "lucide-react"
+import { DatePickerInput } from "@workspace/ui"
 import { useSitePvs, useSiteDegradation } from "@/hooks/useSitePv"
 import {
   useSitePanels,
   useSiteStringWiring,
   useSiteDevices,
 } from "@/hooks/useSitePanels"
-import { formatIsoDateOnly } from "@/utils/date"
+import { useSiteMpptFunctionCheck } from "@/hooks/useMpptCheck"
+import { formatIsoDateOnly, isoDateOnlyToLocalDate } from "@/utils/date"
 import type {
   SiteDeviceModel,
   SitePanelRef,
@@ -16,6 +18,7 @@ import type {
   StringWiringSchematicItem,
   MpptFunctionRow,
   ExpectedMpptARow,
+  MpptFnCheckTimeSlot,
 } from "@/types/engineer"
 import { PvSummaryDialog } from "./PvSummaryDialog"
 import { DegradationDialog } from "./DegradationDialog"
@@ -108,28 +111,6 @@ const TABLE_TIMES = [
   "02:30 PM",
   "03:00 PM",
 ]
-
-const IR_ROW = [700, 750, 750, 800, 850, 850, 900, 900, 900, 850, 800, 750, 700]
-
-const BASE_VALUES = [
-  14.6, 15.8, 15.6, 16.8, 17.8, 17.6, 18.6, 17.1, 16.8, 16.3, 15.4, 15.4, 15.4,
-]
-const MPPT_1_1_VALUES = [
-  14.6, 15.8, 15.6, 16.8, 17.8, 17.6, 18.6, 17.1, 16.8, 16.3, 15.4, 14.3, 13.4,
-]
-
-const PCT_NORMAL = [99, 100, 98, 99, 99, 98, 98, 98, 98, 98, 98, 98, 98]
-const PCT_DEGRADED_A = [99, 100, 98, 99, 99, 98, 98, 90, 88, 91, 91, 91, 91]
-const PCT_DEGRADED_B = [99, 100, 98, 99, 99, 98, 98, 64, 63, 64, 63, 63, 63]
-
-const MPPT_ROWS = [
-  { id: "1.1", pctLabel: "%", values: MPPT_1_1_VALUES, pct: PCT_DEGRADED_A },
-  { id: "1.2", pctLabel: "%2", values: BASE_VALUES, pct: PCT_NORMAL },
-  { id: "2.1", pctLabel: "%3", values: BASE_VALUES, pct: PCT_NORMAL },
-  { id: "2.2", pctLabel: "%4", values: BASE_VALUES, pct: PCT_DEGRADED_B },
-  { id: "3.1", pctLabel: "%5", values: BASE_VALUES, pct: PCT_NORMAL },
-  { id: "3.2", pctLabel: "%6", values: BASE_VALUES, pct: PCT_NORMAL },
-] as const
 
 // ---- Panel Config ----
 
@@ -258,6 +239,24 @@ type MpptChartViewProps = {
 
 export function MpptChartView({ siteId, onBack }: MpptChartViewProps) {
   const [activeTab, setActiveTab] = useState(0)
+  const [checkDate, setCheckDate] = useState(() => new Date())
+
+  const { data: pvsRes } = useSitePvs(siteId)
+  const commissionedAt = pvsRes?.data?.commissioned_at ?? null
+  const minCheckDate = commissionedAt
+    ? isoDateOnlyToLocalDate(commissionedAt)
+    : undefined
+  const maxCheckDate = new Date()
+  const checkDateMatchers = minCheckDate
+    ? [{ before: minCheckDate }, { after: maxCheckDate }]
+    : [{ after: maxCheckDate }]
+
+  const dateAt = Math.floor(checkDate.getTime() / 1000)
+  const { data: mpptCheckRes, isLoading: isMpptCheckLoading } =
+    useSiteMpptFunctionCheck(siteId, dateAt, activeTab === 0)
+  const mpptCheckRecords = mpptCheckRes?.data?.mppt_fn_check_table_str
+    ? parseMpptFnCheckTable(mpptCheckRes.data.mppt_fn_check_table_str)
+    : []
 
   return (
     <div className="flex flex-col">
@@ -308,8 +307,22 @@ export function MpptChartView({ siteId, onBack }: MpptChartViewProps) {
         </div>
 
         {activeTab === 0 && (
-          <CollapsibleTable title="MPPT function Check">
-            <MpptFunctionCheckTable />
+          <CollapsibleTable
+            title="MPPT function Check"
+            headerRight={
+              <DatePickerInput
+                value={checkDate}
+                onChange={(d) => d && setCheckDate(d)}
+                disabledDates={checkDateMatchers}
+                className="h-9 text-xs"
+              />
+            }
+          >
+            {isMpptCheckLoading ? (
+              <div className="bg-muted h-16 w-full animate-pulse rounded-lg" />
+            ) : (
+              <MpptFunctionCheckTable records={mpptCheckRecords} />
+            )}
           </CollapsibleTable>
         )}
 
@@ -364,32 +377,95 @@ function ChartViewPanel() {
 
 function CollapsibleTable({
   title,
+  headerRight,
   children,
 }: {
   title: string
+  headerRight?: React.ReactNode
   children: React.ReactNode
 }) {
   const [open, setOpen] = useState(true)
   return (
     <div className="border-border/60 rounded-xl border">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between px-5 py-4"
-      >
-        <h3 className="text-base font-semibold text-[#1D1D1D]">{title}</h3>
-        {open ? (
-          <ChevronUp className="text-muted-foreground h-4 w-4" />
-        ) : (
-          <ChevronDown className="text-muted-foreground h-4 w-4" />
-        )}
-      </button>
+      <div className="flex items-center justify-between gap-4 px-5 py-4">
+        <button
+          onClick={() => setOpen((v) => !v)}
+          className="flex flex-1 items-center gap-2 text-left"
+        >
+          <h3 className="text-base font-semibold text-[#1D1D1D]">{title}</h3>
+        </button>
+        <div className="flex items-center gap-3">
+          {headerRight}
+          <button onClick={() => setOpen((v) => !v)}>
+            {open ? (
+              <ChevronUp className="text-muted-foreground h-4 w-4" />
+            ) : (
+              <ChevronDown className="text-muted-foreground h-4 w-4" />
+            )}
+          </button>
+        </div>
+      </div>
       {open && <div className="overflow-x-auto px-5 pb-5">{children}</div>}
     </div>
   )
 }
 
-function MpptFunctionCheckTable() {
-  const columnCount = TABLE_TIMES.length + 1
+function parseMpptFnCheckTable(raw: string): MpptFnCheckTimeSlot[] {
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    return Array.isArray(parsed) ? (parsed as MpptFnCheckTimeSlot[]) : []
+  } catch {
+    return []
+  }
+}
+
+/** `time_at` comes as 24-hour "HH:MM:SS" — display it like the rest of the
+ * app's time columns, e.g. "9:00 AM". */
+function formatTimeAt(timeAt: string): string {
+  const [hh, mm] = timeAt.split(":").map(Number)
+  const period = hh >= 12 ? "PM" : "AM"
+  const hour12 = hh % 12 === 0 ? 12 : hh % 12
+  return `${hour12}:${String(mm).padStart(2, "0")} ${period}`
+}
+
+/** Pivots the per-time-slot readings (each with a nested `mppt_keys` list)
+ * into a Time header row + an Ir row + one value/pct row-pair per mppt_key. */
+function pivotMpptFnCheck(slots: MpptFnCheckTimeSlot[]) {
+  const times = slots.map((s) => formatTimeAt(s.time_at))
+  const mpptKeys = Array.from(
+    new Set(slots.flatMap((s) => s.mppt_keys.map((m) => m.mppt_key)))
+  )
+
+  return {
+    times,
+    irRow: slots.map((s) => s.ir_w_per_m2),
+    rows: mpptKeys.map((key) => ({
+      key,
+      values: slots.map(
+        (s) => s.mppt_keys.find((m) => m.mppt_key === key)?.pvn_ip ?? null
+      ),
+      pct: slots.map(
+        (s) => s.mppt_keys.find((m) => m.mppt_key === key)?.pct ?? null
+      ),
+    })),
+  }
+}
+
+function MpptFunctionCheckTable({
+  records,
+}: {
+  records: MpptFnCheckTimeSlot[]
+}) {
+  const { times, irRow, rows } = pivotMpptFnCheck(records)
+  const columnCount = times.length + 1
+
+  if (times.length === 0) {
+    return (
+      <p className="text-muted-foreground py-6 text-center text-sm">
+        No MPPT function check data for this date.
+      </p>
+    )
+  }
 
   return (
     <table className="w-full border-separate border-spacing-0 text-sm">
@@ -398,11 +474,11 @@ function MpptFunctionCheckTable() {
           <th className="rounded-l-md px-3 py-2 text-left font-semibold text-[#1D1D1D]">
             Time
           </th>
-          {TABLE_TIMES.map((t, i) => (
+          {times.map((t, i) => (
             <th
               key={t}
               className={`px-3 py-2 text-left font-semibold whitespace-nowrap text-[#1D1D1D] ${
-                i === TABLE_TIMES.length - 1 ? "rounded-r-md" : ""
+                i === times.length - 1 ? "rounded-r-md" : ""
               }`}
             >
               {t}
@@ -413,22 +489,22 @@ function MpptFunctionCheckTable() {
       <tbody>
         <tr>
           <td className="px-3 py-2 font-medium">Ir</td>
-          {IR_ROW.map((v, i) => (
+          {irRow.map((v, i) => (
             <td key={i} className="px-3 py-2">
-              {v}
+              {v ?? "—"}
             </td>
           ))}
         </tr>
         <tr aria-hidden>
           <td colSpan={columnCount} className="h-2" />
         </tr>
-        {MPPT_ROWS.map((row, i) => {
+        {rows.map((row, i) => {
           const bg = i === 0 ? "bg-white" : "bg-sky-50"
           return (
-            <Fragment key={row.id}>
+            <Fragment key={row.key}>
               <tr className={bg}>
                 <td className="border-border/60 rounded-tl-md border-t border-l px-3 py-2 font-medium">
-                  {row.id}
+                  {row.key}
                 </td>
                 {row.values.map((v, j) => (
                   <td
@@ -439,13 +515,13 @@ function MpptFunctionCheckTable() {
                         : ""
                     }`}
                   >
-                    {v}
+                    {v ?? "—"}
                   </td>
                 ))}
               </tr>
               <tr className={bg}>
                 <td className="border-border/60 rounded-bl-md border-b border-l px-3 py-2 font-medium">
-                  {row.pctLabel}
+                  %
                 </td>
                 {row.pct.map((p, j) => (
                   <td
@@ -454,19 +530,23 @@ function MpptFunctionCheckTable() {
                       j === row.pct.length - 1 ? "rounded-br-md border-r" : ""
                     }`}
                   >
-                    <span
-                      className={
-                        p < 92
-                          ? "rounded-md bg-red-100 px-2 py-0.5 text-red-700"
-                          : ""
-                      }
-                    >
-                      {p}%
-                    </span>
+                    {p === null ? (
+                      "—"
+                    ) : (
+                      <span
+                        className={
+                          p < 92
+                            ? "rounded-md bg-red-100 px-2 py-0.5 text-red-700"
+                            : ""
+                        }
+                      >
+                        {Math.round(p)}%
+                      </span>
+                    )}
                   </td>
                 ))}
               </tr>
-              {i < MPPT_ROWS.length - 1 && (
+              {i < rows.length - 1 && (
                 <tr aria-hidden>
                   <td colSpan={columnCount} className="h-2" />
                 </tr>

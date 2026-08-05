@@ -51,6 +51,44 @@ function rowsFromExisting(rows: StringWiringItemInput[]): StringRow[] {
   }))
 }
 
+/** The highest `pvN_*` index present in the device's latest telemetry is how
+ * many MPPT inputs the inverter has, e.g. a reading with `pv4_i` means MPPT
+ * values for that device are only valid in the 0–4 range. */
+function getMaxMppt(device: SiteDeviceModel | undefined): number | null {
+  if (!device?.recent_telemetry_reading) return null
+  try {
+    const reading = JSON.parse(device.recent_telemetry_reading) as Record<
+      string,
+      unknown
+    >
+    let max = 0
+    for (const key of Object.keys(reading)) {
+      const match = /^pv(\d+)_/i.exec(key)
+      if (match) max = Math.max(max, Number(match[1]))
+    }
+    return max > 0 ? max : null
+  } catch {
+    return null
+  }
+}
+
+function clampMppt(value: string, maxMppt: number | null): string {
+  if (value === "") return value
+  const num = Number(value)
+  if (Number.isNaN(num)) return value
+  const clamped = Math.max(1, maxMppt !== null ? Math.min(num, maxMppt) : num)
+  return String(clamped)
+}
+
+/** String ID and panel quantity have no upper bound, but zero/negative
+ * values don't make sense for either. */
+function clampPositive(value: string): string {
+  if (value === "") return value
+  const num = Number(value)
+  if (Number.isNaN(num)) return value
+  return String(Math.max(1, num))
+}
+
 type StringWiringDialogProps = {
   siteId: string
   isOpen: boolean
@@ -72,6 +110,9 @@ export function StringWiringDialog({
 }: StringWiringDialogProps) {
   const [rows, setRows] = useState<StringRow[]>([{ ...EMPTY_ROW }])
   const isEdit = !!existingUid
+  const inverters = devices.filter(
+    (d) => d.device_type.toLowerCase() === "inverter"
+  )
 
   const { mutate: create, isPending: isCreating } =
     useCreateSiteStringWiring(siteId)
@@ -142,74 +183,97 @@ export function StringWiringDialog({
             <span>Panel</span>
             <span>Qty</span>
             <span />
-            {rows.map((row, i) => (
-              <div key={i} className="contents">
-                <Select
-                  value={row.inverter}
-                  onValueChange={(v) => updateRow(i, "inverter", v)}
-                >
-                  <SelectTrigger className="border-border/60 mt-2 w-full border bg-white">
-                    <SelectValue placeholder="Select inverter" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {devices.map((d) => (
-                      <SelectItem key={d.uid} value={String(d.slave_id)}>
-                        {d.device_type} · Slave {d.slave_id}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            {rows.map((row, i) => {
+              const selectedInverter = inverters.find(
+                (d) => String(d.slave_id) === row.inverter
+              )
+              const maxMppt = getMaxMppt(selectedInverter)
 
-                <Input
-                  type="number"
-                  value={row.mppt}
-                  onChange={(e) => updateRow(i, "mppt", e.target.value)}
-                  placeholder="Enter value"
-                  className="border-border/60 mt-2 border bg-white"
-                />
-                <Input
-                  type="number"
-                  value={row.string_id}
-                  onChange={(e) => updateRow(i, "string_id", e.target.value)}
-                  placeholder="Enter value"
-                  className="border-border/60 mt-2 border bg-white"
-                />
+              return (
+                <div key={i} className="contents">
+                  <Select
+                    value={row.inverter}
+                    onValueChange={(v) => updateRow(i, "inverter", v)}
+                  >
+                    <SelectTrigger className="border-border/60 mt-2 w-full border bg-white">
+                      <SelectValue placeholder="Select inverter" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {inverters.map((d) => (
+                        <SelectItem key={d.uid} value={String(d.slave_id)}>
+                          {d.device_type} · Slave {d.slave_id}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
 
-                <Select
-                  value={row.panel_ref_uid}
-                  onValueChange={(v) => updateRow(i, "panel_ref_uid", v)}
-                >
-                  <SelectTrigger className="border-border/60 mt-2 w-full border bg-white">
-                    <SelectValue placeholder="Select panel" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {panels.map((p) => (
-                      <SelectItem key={p.uid} value={p.uid}>
-                        {p.panel_type} ({p.watt}W)
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={maxMppt ?? undefined}
+                    value={row.mppt}
+                    onChange={(e) =>
+                      updateRow(i, "mppt", clampMppt(e.target.value, maxMppt))
+                    }
+                    placeholder="Enter value"
+                    className="border-border/60 mt-2 border bg-white"
+                  />
+                  <Input
+                    type="number"
+                    min={1}
+                    value={row.string_id}
+                    onChange={(e) =>
+                      updateRow(i, "string_id", clampPositive(e.target.value))
+                    }
+                    placeholder="Enter value"
+                    className="border-border/60 mt-2 border bg-white"
+                  />
 
-                <Input
-                  type="number"
-                  value={row.panel_qty}
-                  onChange={(e) => updateRow(i, "panel_qty", e.target.value)}
-                  placeholder="Enter value"
-                  className="border-border/60 mt-2 border bg-white"
-                />
+                  <Select
+                    value={row.panel_ref_uid}
+                    onValueChange={(v) => updateRow(i, "panel_ref_uid", v)}
+                  >
+                    <SelectTrigger className="border-border/60 mt-2 w-full border bg-white">
+                      <SelectValue placeholder="Select panel" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {panels.map((p) => (
+                        <SelectItem key={p.uid} value={p.uid}>
+                          {p.panel_type} ({p.watt}W)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
 
-                <button
-                  onClick={() => removeRow(i)}
-                  disabled={rows.length === 1}
-                  className="text-muted-foreground hover:text-destructive mt-2 flex items-center justify-center disabled:opacity-30"
-                  title="Remove row"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            ))}
+                  <Input
+                    type="number"
+                    min={1}
+                    value={row.panel_qty}
+                    onChange={(e) =>
+                      updateRow(i, "panel_qty", clampPositive(e.target.value))
+                    }
+                    placeholder="Enter value"
+                    className="border-border/60 mt-2 border bg-white"
+                  />
+
+                  <button
+                    onClick={() => removeRow(i)}
+                    disabled={rows.length === 1}
+                    className="text-muted-foreground hover:text-destructive mt-2 flex items-center justify-center disabled:opacity-30"
+                    title="Remove row"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              )
+            })}
           </div>
+          {inverters.length === 0 && (
+            <p className="text-muted-foreground mt-2 text-xs">
+              No inverter devices found for this site — an inverter must be
+              added before wiring can be configured.
+            </p>
+          )}
           {panels.length === 0 && (
             <p className="text-muted-foreground mt-2 text-xs">
               No panels configured yet — add a panel config first to select one

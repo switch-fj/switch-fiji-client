@@ -158,6 +158,7 @@ export function ClientStatusTable() {
                   return (
                     <tr
                       key={client.uid}
+                      onClick={() => setSelectedClient(client)}
                       className="hover:bg-muted/30 cursor-pointer transition-colors"
                     >
                       <td className="px-4 py-3.5 text-sm font-medium">
@@ -176,9 +177,7 @@ export function ClientStatusTable() {
                         />
                       </td>
                       <td className="px-4 py-3.5 text-right">
-                        <button onClick={() => setSelectedClient(client)}>
-                          <ChevronRight className="text-muted-foreground ml-auto h-4 w-4" />
-                        </button>
+                        <ChevronRight className="text-muted-foreground ml-auto h-4 w-4" />
                       </td>
                     </tr>
                   )

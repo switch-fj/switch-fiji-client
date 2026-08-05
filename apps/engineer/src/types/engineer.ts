@@ -184,5 +184,38 @@ export type SiteDeviceModel = {
   device_type: string
   meter_role: string | null
   is_dual_tariff: boolean | null
+  /** JSON-encoded snapshot of the device's latest telemetry, e.g.
+   * `{"pv1_v":0,"pv1_w":0,"pv1_i":0,"pv2_v":22.1,...}` — the highest
+   * `pvN_*` index present indicates how many MPPT inputs the inverter has. */
+  recent_telemetry_reading: string | null
   last_seen_at: string | null
+}
+
+export type SiteMpptFunctionCheck = {
+  uid: string
+  created_at: string
+  updated_at: string
+  site_uid: string
+  user_uid: string
+  date_at: string
+  from_: string
+  to: string
+  interval_in_minutes: number
+  is_completed: boolean
+  /** JSON-encoded array of per-time-slot readings. */
+  mppt_fn_check_table_str: string | null
+  telemetry_reading_str: string | null
+}
+
+export type MpptFnCheckReading = {
+  mppt_key: string
+  pvn_ip: number
+  pct: number
+}
+
+export type MpptFnCheckTimeSlot = {
+  time_at: string
+  ir_w_per_m2: number
+  irradiance_source: string
+  mppt_keys: MpptFnCheckReading[]
 }
