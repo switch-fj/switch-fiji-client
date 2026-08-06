@@ -34,38 +34,14 @@ const TABS = [
 
 // ---- Chart View ----
 
-const CHART_SERIES = [
-  {
-    id: "1.1",
-    color: "#00822E",
-    values: [2, 3, 5, 25, 55, 70, 78, 74, 60, 52, 30, 10],
-  },
-  {
-    id: "1.2",
-    color: "#FA4F19",
-    values: [2, 4, 8, 30, 58, 75, 82, 79, 64, 55, 32, 12],
-  },
-  {
-    id: "2.1",
-    color: "#024159",
-    values: [1, 3, 6, 22, 50, 68, 76, 72, 58, 48, 28, 9],
-  },
-  {
-    id: "2.2",
-    color: "#8B5CF6",
-    values: [2, 3, 7, 28, 54, 72, 80, 77, 62, 53, 31, 11],
-  },
-  {
-    id: "31",
-    color: "#00AEEF",
-    values: [3, 5, 9, 32, 60, 78, 85, 81, 66, 57, 34, 14],
-  },
-  {
-    id: "3.2",
-    color: "#4B5563",
-    values: [1, 2, 4, 20, 48, 66, 74, 70, 56, 46, 26, 8],
-  },
-] as const
+const MPPT_CHART_COLORS = [
+  "#00822E",
+  "#FA4F19",
+  "#024159",
+  "#8B5CF6",
+  "#00AEEF",
+  "#4B5563",
+]
 
 const CHART_TIMES = [
   "9:00am",
@@ -257,6 +233,7 @@ export function MpptChartView({ siteId, onBack }: MpptChartViewProps) {
   const mpptCheckRecords = mpptCheckRes?.data?.mppt_fn_check_table_str
     ? parseMpptFnCheckTable(mpptCheckRes.data.mppt_fn_check_table_str)
     : []
+  const pivotedMpptCheck = pivotMpptFnCheck(mpptCheckRecords)
 
   return (
     <div className="flex flex-col">
@@ -300,7 +277,12 @@ export function MpptChartView({ siteId, onBack }: MpptChartViewProps) {
             ) : null}
           </div>
 
-          {activeTab === 0 && <ChartViewPanel />}
+          {activeTab === 0 && (
+            <ChartViewPanel
+              data={pivotedMpptCheck}
+              isLoading={isMpptCheckLoading}
+            />
+          )}
           {activeTab === 1 && <PanelConfigPanel siteId={siteId} />}
           {activeTab === 2 && <PvSummaryPanel siteId={siteId} />}
           {activeTab === 3 && <BatterySocPanel />}
@@ -321,7 +303,7 @@ export function MpptChartView({ siteId, onBack }: MpptChartViewProps) {
             {isMpptCheckLoading ? (
               <div className="bg-muted h-16 w-full animate-pulse rounded-lg" />
             ) : (
-              <MpptFunctionCheckTable records={mpptCheckRecords} />
+              <MpptFunctionCheckTable data={pivotedMpptCheck} />
             )}
           </CollapsibleTable>
         )}
@@ -336,40 +318,55 @@ export function MpptChartView({ siteId, onBack }: MpptChartViewProps) {
   )
 }
 
-function ChartViewPanel() {
+function ChartViewPanel({
+  data,
+  isLoading,
+}: {
+  data: ReturnType<typeof pivotMpptFnCheck>
+  isLoading: boolean
+}) {
+  const series = data.rows.map((row, i) => ({
+    id: row.key,
+    color: MPPT_CHART_COLORS[i % MPPT_CHART_COLORS.length],
+    // Efficiency readings can run above 100% (over-performing panels); the
+    // chart's y-axis is a fixed 0-100% scale, so clamp for plotting only —
+    // the exact figure is still visible in the table below.
+    values: row.pct.map((p) => Math.min(p ?? 0, 100)),
+  }))
+
+  if (isLoading) {
+    return <div className="bg-muted h-56 w-full animate-pulse rounded-lg" />
+  }
+
+  if (data.times.length === 0) {
+    return (
+      <p className="text-muted-foreground py-16 text-center text-sm">
+        No MPPT function check data for this date.
+      </p>
+    )
+  }
+
   return (
     <>
       <LineChart
-        series={CHART_SERIES}
+        series={series}
         yLabels={CHART_Y_LABELS}
-        xLabels={CHART_TIMES}
+        xLabels={data.times}
       />
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
-        <ul className="flex flex-wrap items-center gap-5">
-          {CHART_SERIES.map((s) => (
-            <li
-              key={s.id}
-              className="flex items-center gap-1.5 text-sm text-[#1D1D1D]"
-            >
-              <span
-                className="h-2.5 w-2.5 shrink-0 rounded-full"
-                style={{ backgroundColor: s.color }}
-              />
-              {s.id}
-            </li>
-          ))}
-        </ul>
-        <div className="flex items-center gap-6 text-sm">
-          <span className="text-[#1D1D1D]">
-            p_total_w (Generator){" "}
-            <span className="font-semibold text-[#FA4F19]">1300kW</span>
+      <div className="mt-4 flex flex-wrap items-center gap-5">
+        {series.map((s) => (
+          <span
+            key={s.id}
+            className="flex items-center gap-1.5 text-sm text-[#1D1D1D]"
+          >
+            <span
+              className="h-2.5 w-2.5 shrink-0 rounded-full"
+              style={{ backgroundColor: s.color }}
+            />
+            {s.id}
           </span>
-          <span className="text-[#1D1D1D]">
-            p_total_w (Site){" "}
-            <span className="font-semibold text-[#FA4F19]">15300kW</span>
-          </span>
-        </div>
+        ))}
       </div>
     </>
   )
@@ -452,11 +449,11 @@ function pivotMpptFnCheck(slots: MpptFnCheckTimeSlot[]) {
 }
 
 function MpptFunctionCheckTable({
-  records,
+  data,
 }: {
-  records: MpptFnCheckTimeSlot[]
+  data: ReturnType<typeof pivotMpptFnCheck>
 }) {
-  const { times, irRow, rows } = pivotMpptFnCheck(records)
+  const { times, irRow, rows } = data
   const columnCount = times.length + 1
 
   if (times.length === 0) {
