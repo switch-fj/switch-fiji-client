@@ -247,3 +247,27 @@ export type BatterySocTimeSlot = {
   time_at: string
   battery_keys: BatterySocReading[]
 }
+
+export type BatteryDataInput = {
+  battery_keys: string[]
+  capacity_kwh: number
+  low_soc_threshold: number
+  high_soc_threshold: number
+}
+
+export type BatterySocConfigInputItem = {
+  inverter_slave_id: number
+  battery_data: BatteryDataInput
+}
+
+export type SiteBatteryConfig = {
+  uid: string
+  created_at: string
+  updated_at: string
+  site_uid: string
+  user_uid: string
+  /** JSON-encoded array of the submitted BatterySocConfigInputItem rows. */
+  config_input_str: string
+  effective_from: string
+  effective_to: string | null
+}

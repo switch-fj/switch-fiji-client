@@ -10,7 +10,7 @@ import {
   useSiteDevices,
 } from "@/hooks/useSitePanels"
 import { useSiteMpptFunctionCheck } from "@/hooks/useMpptCheck"
-import { useSiteBatterySoc } from "@/hooks/useBatterySoc"
+import { useSiteBatterySoc, useSiteBatteryConfig } from "@/hooks/useBatterySoc"
 import { formatIsoDateOnly, isoDateOnlyToLocalDate } from "@/utils/date"
 import type {
   SiteDeviceModel,
@@ -21,11 +21,13 @@ import type {
   ExpectedMpptARow,
   MpptFnCheckTimeSlot,
   BatterySocTimeSlot,
+  BatterySocConfigInputItem,
 } from "@/types/engineer"
 import { PvSummaryDialog } from "./PvSummaryDialog"
 import { DegradationDialog } from "./DegradationDialog"
 import { PanelConfigDialog } from "./PanelConfigDialog"
 import { StringWiringDialog } from "./StringWiringDialog"
+import { BatteryConfigDialog } from "./BatteryConfigDialog"
 
 const TABS = [
   "Chart View",
@@ -241,6 +243,7 @@ export function MpptChartView({ siteId, onBack }: MpptChartViewProps) {
           {activeTab === 2 && <PvSummaryPanel siteId={siteId} />}
           {activeTab === 3 && (
             <BatterySocPanel
+              siteId={siteId}
               data={pivotedBatterySoc}
               isLoading={isBatterySocLoading}
             />
@@ -1196,53 +1199,168 @@ function PvSummaryPanel({ siteId }: { siteId: string }) {
   )
 }
 
+function parseBatteryConfigInput(raw: string): BatterySocConfigInputItem[] {
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    return Array.isArray(parsed) ? (parsed as BatterySocConfigInputItem[]) : []
+  } catch {
+    return []
+  }
+}
+
+function BatteryConfigSummary({
+  siteId,
+  devices,
+}: {
+  siteId: string
+  devices: SiteDeviceModel[]
+}) {
+  const { data: configRes, isLoading } = useSiteBatteryConfig(siteId)
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const config = configRes?.data ?? null
+  const rows = config ? parseBatteryConfigInput(config.config_input_str) : []
+  const deviceBySlaveId = new Map(devices.map((d) => [d.slave_id, d]))
+
+  if (isLoading) {
+    return (
+      <div className="bg-muted mb-5 h-16 w-full animate-pulse rounded-lg" />
+    )
+  }
+
+  return (
+    <div className="mb-5">
+      {rows.length === 0 ? (
+        <div className="border-border/60 flex flex-col items-center gap-3 rounded-lg border border-dashed py-8 text-center">
+          <p className="text-muted-foreground text-sm">
+            No battery config yet for this site.
+          </p>
+          <button
+            onClick={() => setDialogOpen(true)}
+            className="flex items-center gap-1.5 rounded-lg bg-[#024159] px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Create Battery Config
+          </button>
+        </div>
+      ) : (
+        <div className="border-border/60 overflow-x-auto rounded-lg border">
+          <div className="bg-sky-100 px-3 py-2 text-sm font-semibold text-[#1D1D1D]">
+            Battery Config
+          </div>
+          <table className="w-full border-separate border-spacing-0 text-sm">
+            <thead>
+              <tr>
+                {[
+                  "Inverter",
+                  "Battery Keys",
+                  "Capacity (kWh)",
+                  "Low SOC %",
+                  "High SOC %",
+                ].map((h) => (
+                  <th
+                    key={h}
+                    className="border-border/60 text-foreground border-b px-3 py-2 text-left font-semibold whitespace-nowrap"
+                  >
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, i) => {
+                const device = deviceBySlaveId.get(row.inverter_slave_id)
+                return (
+                  <tr
+                    key={i}
+                    className={i % 2 === 1 ? "bg-sky-50" : "bg-white"}
+                  >
+                    <td className="border-border/60 border-b px-3 py-2">
+                      {device
+                        ? `${device.device_type} · ${row.inverter_slave_id}`
+                        : row.inverter_slave_id}
+                    </td>
+                    <td className="border-border/60 border-b px-3 py-2">
+                      {row.battery_data.battery_keys.join(", ")}
+                    </td>
+                    <td className="border-border/60 border-b px-3 py-2">
+                      {row.battery_data.capacity_kwh}
+                    </td>
+                    <td className="border-border/60 border-b px-3 py-2">
+                      {row.battery_data.low_soc_threshold}%
+                    </td>
+                    <td className="border-border/60 border-b px-3 py-2">
+                      {row.battery_data.high_soc_threshold}%
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <BatteryConfigDialog
+        siteId={siteId}
+        isOpen={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        devices={devices}
+      />
+    </div>
+  )
+}
+
 function BatterySocPanel({
+  siteId,
   data,
   isLoading,
 }: {
+  siteId: string
   data: ReturnType<typeof pivotBatterySoc>
   isLoading: boolean
 }) {
+  const { data: devicesRes } = useSiteDevices(siteId)
+  const devices = devicesRes?.data ?? []
+
   const series = data.rows.map((row, i) => ({
     id: row.key,
     color: MPPT_CHART_COLORS[i % MPPT_CHART_COLORS.length],
     values: row.values.map((v) => Math.max(0, Math.min(v ?? 0, 100))),
   }))
 
-  if (isLoading) {
-    return <div className="bg-muted h-56 w-full animate-pulse rounded-lg" />
-  }
-
-  if (data.times.length === 0) {
-    return (
-      <p className="text-muted-foreground py-16 text-center text-sm">
-        No battery SOC data for this date.
-      </p>
-    )
-  }
-
   return (
     <>
-      <LineChart
-        series={series}
-        yLabels={CHART_Y_LABELS}
-        xLabels={data.times}
-      />
+      <BatteryConfigSummary siteId={siteId} devices={devices} />
 
-      <ul className="mt-4 flex flex-wrap items-center gap-5">
-        {series.map((s) => (
-          <li
-            key={s.id}
-            className="flex items-center gap-1.5 text-sm text-[#1D1D1D]"
-          >
-            <span
-              className="h-2.5 w-2.5 shrink-0 rounded-full"
-              style={{ backgroundColor: s.color }}
-            />
-            {s.id}
-          </li>
-        ))}
-      </ul>
+      {isLoading ? (
+        <div className="bg-muted h-56 w-full animate-pulse rounded-lg" />
+      ) : data.times.length === 0 ? (
+        <p className="text-muted-foreground py-16 text-center text-sm">
+          No battery SOC data for this date.
+        </p>
+      ) : (
+        <>
+          <LineChart
+            series={series}
+            yLabels={CHART_Y_LABELS}
+            xLabels={data.times}
+          />
+
+          <ul className="mt-4 flex flex-wrap items-center gap-5">
+            {series.map((s) => (
+              <li
+                key={s.id}
+                className="flex items-center gap-1.5 text-sm text-[#1D1D1D]"
+              >
+                <span
+                  className="h-2.5 w-2.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: s.color }}
+                />
+                {s.id}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </>
   )
 }

@@ -24,6 +24,8 @@ export const SITE = {
   MPPT_FUNCTION_CHECK: (siteUid: string) =>
     `/api/v1/sites/${siteUid}/mppt-function-check`,
   BATTERY_SOC: (siteUid: string) => `/api/v1/sites/${siteUid}/battery-soc`,
+  BATTERY_CONFIG: (siteUid: string) =>
+    `/api/v1/sites/${siteUid}/battery-config`,
 } as const
 
 export const DEVICE = {
