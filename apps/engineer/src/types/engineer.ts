@@ -219,3 +219,31 @@ export type MpptFnCheckTimeSlot = {
   irradiance_source: string
   mppt_keys: MpptFnCheckReading[]
 }
+
+export type SiteBatterySoc = {
+  uid: string
+  created_at: string
+  updated_at: string
+  site_uid: string
+  battery_soc_config_uid: string
+  date_at: string
+  from_: string
+  to: string
+  interval_in_minutes: number
+  is_completed: boolean
+  /** JSON-encoded array of per-time-slot readings — exact shape unconfirmed
+   * against a live response; parsed defensively, mirroring the
+   * `mppt_fn_check_table_str` convention (nested per-key readings). */
+  battery_soc_table_str: string | null
+  telemetry_reading_str: string | null
+}
+
+export type BatterySocReading = {
+  battery_key: string
+  soc: number
+}
+
+export type BatterySocTimeSlot = {
+  time_at: string
+  battery_keys: BatterySocReading[]
+}

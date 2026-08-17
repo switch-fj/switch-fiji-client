@@ -23,6 +23,7 @@ export const SITE = {
   STRING_WIRING: (siteUid: string) => `/api/v1/sites/${siteUid}/string-wiring`,
   MPPT_FUNCTION_CHECK: (siteUid: string) =>
     `/api/v1/sites/${siteUid}/mppt-function-check`,
+  BATTERY_SOC: (siteUid: string) => `/api/v1/sites/${siteUid}/battery-soc`,
 } as const
 
 export const DEVICE = {

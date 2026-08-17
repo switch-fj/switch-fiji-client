@@ -10,6 +10,7 @@ import {
   useSiteDevices,
 } from "@/hooks/useSitePanels"
 import { useSiteMpptFunctionCheck } from "@/hooks/useMpptCheck"
+import { useSiteBatterySoc } from "@/hooks/useBatterySoc"
 import { formatIsoDateOnly, isoDateOnlyToLocalDate } from "@/utils/date"
 import type {
   SiteDeviceModel,
@@ -19,6 +20,7 @@ import type {
   MpptFunctionRow,
   ExpectedMpptARow,
   MpptFnCheckTimeSlot,
+  BatterySocTimeSlot,
 } from "@/types/engineer"
 import { PvSummaryDialog } from "./PvSummaryDialog"
 import { DegradationDialog } from "./DegradationDialog"
@@ -43,21 +45,6 @@ const MPPT_CHART_COLORS = [
   "#4B5563",
 ]
 
-const CHART_TIMES = [
-  "9:00am",
-  "9:30am",
-  "10:00am",
-  "10:30am",
-  "11:00am",
-  "11:30am",
-  "12:00pm",
-  "12:30pm",
-  "1:00pm",
-  "1:30pm",
-  "2:00pm",
-  "2:30pm",
-]
-
 const CHART_Y_LABELS = [
   "100%",
   "90%",
@@ -72,49 +59,9 @@ const CHART_Y_LABELS = [
   "0%",
 ]
 
-const TABLE_TIMES = [
-  "9:00 AM",
-  "9:30 AM",
-  "10:00 AM",
-  "10:30 AM",
-  "11:00 AM",
-  "11:30 AM",
-  "12:00 PM",
-  "12:30 PM",
-  "01:00 PM",
-  "01:30 PM",
-  "02:00 PM",
-  "02:30 PM",
-  "03:00 PM",
-]
-
 // ---- Panel Config ----
 
 // ---- Battery SOC ----
-
-const BATTERY_CHART_SERIES = [
-  {
-    id: "1.1",
-    color: "#00822E",
-    values: [20, 42, 58, 68, 80, 88, 68, 62, 78, 86, 50, 65],
-  },
-  {
-    id: "1.2",
-    color: "#FA4F19",
-    values: [65, 72, 80, 85, 90, 80, 88, 90, 80, 90, 70, 88],
-  },
-]
-
-const BATTERY_TIME_CHECK = [
-  {
-    id: "Battery1.1",
-    values: [20, 50, 60, 67, 75, 90, 67, 64, 74, 87, 45, 65, 77],
-  },
-  {
-    id: "Battery1.2",
-    values: [99, 100, 98, 99, 99, 98, 98, 90, 88, 91, 91, 44, 91],
-  },
-]
 
 function pathFromValues(
   values: readonly number[],
@@ -235,6 +182,13 @@ export function MpptChartView({ siteId, onBack }: MpptChartViewProps) {
     : []
   const pivotedMpptCheck = pivotMpptFnCheck(mpptCheckRecords)
 
+  const { data: batterySocRes, isLoading: isBatterySocLoading } =
+    useSiteBatterySoc(siteId, dateAt, activeTab === 3)
+  const batterySocRecords = batterySocRes?.data?.battery_soc_table_str
+    ? parseBatterySocTable(batterySocRes.data.battery_soc_table_str)
+    : []
+  const pivotedBatterySoc = pivotBatterySoc(batterySocRecords)
+
   return (
     <div className="flex flex-col">
       {/* Header */}
@@ -285,7 +239,12 @@ export function MpptChartView({ siteId, onBack }: MpptChartViewProps) {
           )}
           {activeTab === 1 && <PanelConfigPanel siteId={siteId} />}
           {activeTab === 2 && <PvSummaryPanel siteId={siteId} />}
-          {activeTab === 3 && <BatterySocPanel />}
+          {activeTab === 3 && (
+            <BatterySocPanel
+              data={pivotedBatterySoc}
+              isLoading={isBatterySocLoading}
+            />
+          )}
         </div>
 
         {activeTab === 0 && (
@@ -309,8 +268,22 @@ export function MpptChartView({ siteId, onBack }: MpptChartViewProps) {
         )}
 
         {activeTab === 3 && (
-          <CollapsibleTable title="Time Check">
-            <BatteryTimeCheckTable />
+          <CollapsibleTable
+            title="Time Check"
+            headerRight={
+              <DatePickerInput
+                value={checkDate}
+                onChange={(d) => d && setCheckDate(d)}
+                disabledDates={checkDateMatchers}
+                className="h-9 text-xs"
+              />
+            }
+          >
+            {isBatterySocLoading ? (
+              <div className="bg-muted h-16 w-full animate-pulse rounded-lg" />
+            ) : (
+              <BatteryTimeCheckTable data={pivotedBatterySoc} />
+            )}
           </CollapsibleTable>
         )}
       </div>
@@ -443,6 +416,34 @@ function pivotMpptFnCheck(slots: MpptFnCheckTimeSlot[]) {
       ),
       pct: slots.map(
         (s) => s.mppt_keys.find((m) => m.mppt_key === key)?.pct ?? null
+      ),
+    })),
+  }
+}
+
+function parseBatterySocTable(raw: string): BatterySocTimeSlot[] {
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    return Array.isArray(parsed) ? (parsed as BatterySocTimeSlot[]) : []
+  } catch {
+    return []
+  }
+}
+
+/** Pivots the per-time-slot readings (each with a nested `battery_keys`
+ * list) into a Time header row + one SOC% row per battery_key. */
+function pivotBatterySoc(slots: BatterySocTimeSlot[]) {
+  const times = slots.map((s) => formatTimeAt(s.time_at))
+  const batteryKeys = Array.from(
+    new Set(slots.flatMap((s) => s.battery_keys.map((b) => b.battery_key)))
+  )
+
+  return {
+    times,
+    rows: batteryKeys.map((key) => ({
+      key,
+      values: slots.map(
+        (s) => s.battery_keys.find((b) => b.battery_key === key)?.soc ?? null
       ),
     })),
   }
@@ -1195,17 +1196,41 @@ function PvSummaryPanel({ siteId }: { siteId: string }) {
   )
 }
 
-function BatterySocPanel() {
+function BatterySocPanel({
+  data,
+  isLoading,
+}: {
+  data: ReturnType<typeof pivotBatterySoc>
+  isLoading: boolean
+}) {
+  const series = data.rows.map((row, i) => ({
+    id: row.key,
+    color: MPPT_CHART_COLORS[i % MPPT_CHART_COLORS.length],
+    values: row.values.map((v) => Math.max(0, Math.min(v ?? 0, 100))),
+  }))
+
+  if (isLoading) {
+    return <div className="bg-muted h-56 w-full animate-pulse rounded-lg" />
+  }
+
+  if (data.times.length === 0) {
+    return (
+      <p className="text-muted-foreground py-16 text-center text-sm">
+        No battery SOC data for this date.
+      </p>
+    )
+  }
+
   return (
     <>
       <LineChart
-        series={BATTERY_CHART_SERIES}
+        series={series}
         yLabels={CHART_Y_LABELS}
-        xLabels={CHART_TIMES}
+        xLabels={data.times}
       />
 
       <ul className="mt-4 flex flex-wrap items-center gap-5">
-        {BATTERY_CHART_SERIES.map((s) => (
+        {series.map((s) => (
           <li
             key={s.id}
             className="flex items-center gap-1.5 text-sm text-[#1D1D1D]"
@@ -1222,7 +1247,21 @@ function BatterySocPanel() {
   )
 }
 
-function BatteryTimeCheckTable() {
+function BatteryTimeCheckTable({
+  data,
+}: {
+  data: ReturnType<typeof pivotBatterySoc>
+}) {
+  const { times, rows } = data
+
+  if (times.length === 0) {
+    return (
+      <p className="text-muted-foreground py-6 text-center text-sm">
+        No battery SOC data for this date.
+      </p>
+    )
+  }
+
   return (
     <table className="w-full border-separate border-spacing-0 text-sm">
       <thead>
@@ -1230,7 +1269,7 @@ function BatteryTimeCheckTable() {
           <th className="border-border/60 text-foreground border-b px-3 py-2 text-left font-semibold">
             Time
           </th>
-          {TABLE_TIMES.map((t) => (
+          {times.map((t) => (
             <th
               key={t}
               className="border-border/60 text-foreground border-b px-3 py-2 text-left font-semibold whitespace-nowrap"
@@ -1241,16 +1280,20 @@ function BatteryTimeCheckTable() {
         </tr>
       </thead>
       <tbody>
-        {BATTERY_TIME_CHECK.map((row, i) => (
-          <tr key={row.id} className={i % 2 === 1 ? "bg-sky-50" : "bg-white"}>
+        {rows.map((row, i) => (
+          <tr key={row.key} className={i % 2 === 1 ? "bg-sky-50" : "bg-white"}>
             <td className="border-border/60 border-b px-3 py-2 font-medium">
-              {row.id}
+              Battery{row.key}
             </td>
             {row.values.map((v, j) => (
               <td key={j} className="border-border/60 border-b px-3 py-2">
-                <span className={v < 55 ? "font-medium text-[#FA4F19]" : ""}>
-                  {v}%
-                </span>
+                {v === null ? (
+                  "—"
+                ) : (
+                  <span className={v < 55 ? "font-medium text-[#FA4F19]" : ""}>
+                    {v}%
+                  </span>
+                )}
               </td>
             ))}
           </tr>

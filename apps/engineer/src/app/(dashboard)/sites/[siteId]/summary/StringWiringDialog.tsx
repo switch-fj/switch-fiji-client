@@ -89,6 +89,16 @@ function clampPositive(value: string): string {
   return String(Math.max(1, num))
 }
 
+function isRowComplete(row: StringRow): boolean {
+  return (
+    row.inverter !== "" &&
+    row.mppt !== "" &&
+    row.string_id !== "" &&
+    row.panel_ref_uid !== "" &&
+    row.panel_qty !== ""
+  )
+}
+
 type StringWiringDialogProps = {
   siteId: string
   isOpen: boolean
@@ -109,10 +119,12 @@ export function StringWiringDialog({
   panels,
 }: StringWiringDialogProps) {
   const [rows, setRows] = useState<StringRow[]>([{ ...EMPTY_ROW }])
+  const [showErrors, setShowErrors] = useState(false)
   const isEdit = !!existingUid
   const inverters = devices.filter(
     (d) => d.device_type.toLowerCase() === "inverter"
   )
+  const hasIncompleteRow = rows.some((r) => !isRowComplete(r))
 
   const { mutate: create, isPending: isCreating } =
     useCreateSiteStringWiring(siteId)
@@ -120,7 +132,10 @@ export function StringWiringDialog({
   const isPending = isCreating || isEditing
 
   useEffect(() => {
-    if (isOpen) setRows(rowsFromExisting(existingRows))
+    if (isOpen) {
+      setRows(rowsFromExisting(existingRows))
+      setShowErrors(false)
+    }
   }, [isOpen, existingRows])
 
   const updateRow = (i: number, field: keyof StringRow, value: string) => {
@@ -136,6 +151,11 @@ export function StringWiringDialog({
     setRows((prev) => prev.filter((_, j) => j !== i))
 
   const handleSave = () => {
+    if (hasIncompleteRow) {
+      setShowErrors(true)
+      return
+    }
+
     const strings: StringWiringItemInput[] = rows.map((r) => ({
       inverter: Number(r.inverter),
       mppt: Number(r.mppt),
@@ -188,6 +208,8 @@ export function StringWiringDialog({
                 (d) => String(d.slave_id) === row.inverter
               )
               const maxMppt = getMaxMppt(selectedInverter)
+              const errorBorder = (empty: boolean) =>
+                showErrors && empty ? "border-red-500" : "border-border/60"
 
               return (
                 <div key={i} className="contents">
@@ -195,7 +217,9 @@ export function StringWiringDialog({
                     value={row.inverter}
                     onValueChange={(v) => updateRow(i, "inverter", v)}
                   >
-                    <SelectTrigger className="border-border/60 mt-2 w-full border bg-white">
+                    <SelectTrigger
+                      className={`${errorBorder(row.inverter === "")} mt-2 w-full border bg-white`}
+                    >
                       <SelectValue placeholder="Select inverter" />
                     </SelectTrigger>
                     <SelectContent>
@@ -216,7 +240,7 @@ export function StringWiringDialog({
                       updateRow(i, "mppt", clampMppt(e.target.value, maxMppt))
                     }
                     placeholder="Enter value"
-                    className="border-border/60 mt-2 border bg-white"
+                    className={`${errorBorder(row.mppt === "")} mt-2 border bg-white`}
                   />
                   <Input
                     type="number"
@@ -226,14 +250,16 @@ export function StringWiringDialog({
                       updateRow(i, "string_id", clampPositive(e.target.value))
                     }
                     placeholder="Enter value"
-                    className="border-border/60 mt-2 border bg-white"
+                    className={`${errorBorder(row.string_id === "")} mt-2 border bg-white`}
                   />
 
                   <Select
                     value={row.panel_ref_uid}
                     onValueChange={(v) => updateRow(i, "panel_ref_uid", v)}
                   >
-                    <SelectTrigger className="border-border/60 mt-2 w-full border bg-white">
+                    <SelectTrigger
+                      className={`${errorBorder(row.panel_ref_uid === "")} mt-2 w-full border bg-white`}
+                    >
                       <SelectValue placeholder="Select panel" />
                     </SelectTrigger>
                     <SelectContent>
@@ -253,7 +279,7 @@ export function StringWiringDialog({
                       updateRow(i, "panel_qty", clampPositive(e.target.value))
                     }
                     placeholder="Enter value"
-                    className="border-border/60 mt-2 border bg-white"
+                    className={`${errorBorder(row.panel_qty === "")} mt-2 border bg-white`}
                   />
 
                   <button
@@ -278,6 +304,11 @@ export function StringWiringDialog({
             <p className="text-muted-foreground mt-2 text-xs">
               No panels configured yet — add a panel config first to select one
               here.
+            </p>
+          )}
+          {showErrors && hasIncompleteRow && (
+            <p className="mt-2 text-xs text-red-600">
+              Fill in every field on each row before saving.
             </p>
           )}
         </div>
