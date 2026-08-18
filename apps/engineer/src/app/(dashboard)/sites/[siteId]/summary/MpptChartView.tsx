@@ -433,22 +433,37 @@ function parseBatterySocTable(raw: string): BatterySocTimeSlot[] {
   }
 }
 
-/** Pivots the per-time-slot readings (each with a nested `battery_keys`
- * list) into a Time header row + one SOC% row per battery_key. */
+/** Pivots the per-time-slot readings (each with a nested `batteries` list,
+ * one entry per inverter, each carrying a `battery_socs` object — usually
+ * `{ battery_soc: number }`, but can be `{}` when no reading is available
+ * yet, or carry extra keys for inverters with more than one battery bank)
+ * into a Time header row + one SOC% row per inverter/battery-bank. */
 function pivotBatterySoc(slots: BatterySocTimeSlot[]) {
   const times = slots.map((s) => formatTimeAt(s.time_at))
-  const batteryKeys = Array.from(
-    new Set(slots.flatMap((s) => s.battery_keys.map((b) => b.battery_key)))
-  )
+
+  const seriesKeys = new Set<string>()
+  for (const slot of slots) {
+    for (const battery of slot.batteries) {
+      for (const socKey of Object.keys(battery.battery_socs)) {
+        seriesKeys.add(`${battery.inverter_slave_id}:${socKey}`)
+      }
+    }
+  }
 
   return {
     times,
-    rows: batteryKeys.map((key) => ({
-      key,
-      values: slots.map(
-        (s) => s.battery_keys.find((b) => b.battery_key === key)?.soc ?? null
-      ),
-    })),
+    rows: Array.from(seriesKeys).map((seriesKey) => {
+      const [slaveId, socKey] = seriesKey.split(":")
+      return {
+        key: socKey === "battery_soc" ? slaveId : `${slaveId}-${socKey}`,
+        values: slots.map((s) => {
+          const battery = s.batteries.find(
+            (b) => String(b.inverter_slave_id) === slaveId
+          )
+          return battery?.battery_socs[socKey] ?? null
+        }),
+      }
+    }),
   }
 }
 

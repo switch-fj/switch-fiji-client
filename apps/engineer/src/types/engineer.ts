@@ -231,21 +231,24 @@ export type SiteBatterySoc = {
   to: string
   interval_in_minutes: number
   is_completed: boolean
-  /** JSON-encoded array of per-time-slot readings — exact shape unconfirmed
-   * against a live response; parsed defensively, mirroring the
-   * `mppt_fn_check_table_str` convention (nested per-key readings). */
+  /** JSON-encoded array of per-time-slot readings. */
   battery_soc_table_str: string | null
   telemetry_reading_str: string | null
 }
 
-export type BatterySocReading = {
-  battery_key: string
-  soc: number
+export type BatterySocEntry = {
+  inverter_slave_id: number
+  /** Usually just `{ battery_soc: number }`; can be `{}` when no reading is
+   * available yet for that inverter/time slot, or carry extra keys (e.g.
+   * `battery_soc2`) for inverters with more than one battery bank. */
+  battery_socs: Record<string, number>
+  battery_power_w: number
+  battery_current_a: number
 }
 
 export type BatterySocTimeSlot = {
   time_at: string
-  battery_keys: BatterySocReading[]
+  batteries: BatterySocEntry[]
 }
 
 export type BatteryDataInput = {
