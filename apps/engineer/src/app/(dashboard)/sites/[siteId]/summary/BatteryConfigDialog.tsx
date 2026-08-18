@@ -183,7 +183,7 @@ export function BatteryConfigDialog({
                     onChange={(e) =>
                       updateRow(i, "battery_keys", e.target.value)
                     }
-                    placeholder="e.g. 1, 2"
+                    placeholder="e.g. battery_soc, battery_soc2"
                     className={`${errorBorder(row.battery_keys.trim() === "")} mt-2 border bg-white`}
                   />
                   <Input
