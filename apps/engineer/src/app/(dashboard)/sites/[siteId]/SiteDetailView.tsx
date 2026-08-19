@@ -15,41 +15,9 @@ import {
   Sun,
   type LucideIcon,
 } from "lucide-react"
-
-const MPPT_STATUS = {
-  ok: "bg-[#00822E]",
-  warning: "bg-[#FA4F19]",
-  critical: "bg-red-500",
-} as const
-
-const MOCK_MPPTS: { label: string; status: keyof typeof MPPT_STATUS }[] = [
-  { label: "1.1", status: "warning" },
-  { label: "1.2", status: "ok" },
-  { label: "2.1", status: "ok" },
-  { label: "2.2", status: "critical" },
-  { label: "31", status: "ok" },
-  { label: "3.2", status: "ok" },
-]
-
-const MOCK_BATTERIES = [
-  { label: "Battery 1 SOC", value: "56%" },
-  { label: "Battery 2 SOC", value: "54%" },
-]
-
-const MOCK_DEVICES = [
-  {
-    name: "Main Inverter Meter",
-    type: "Modbus TCP",
-    total: "145,000 kWh / 160,000 kWh",
-    online: true,
-  },
-  {
-    name: "Backup Meter",
-    type: "Modbus RTU",
-    total: "145,000 kWh / 160,000 kWh",
-    online: false,
-  },
-]
+import { useSiteDevices } from "@/hooks/useSitePanels"
+import { toLocalDateTime } from "@/utils/date"
+import type { SiteDeviceModel } from "@/types/engineer"
 
 const MOCK_ALERTS = [
   { type: "Device warning", description: "Backup Meter is currently offline" },
@@ -126,61 +94,13 @@ export function SiteDetailView({
 
       <div className="flex flex-col gap-5 p-6">
         <div className="flex flex-wrap gap-4">
-          <MpptHealthCard />
-          <BatteryCard />
-        </div>
-
-        <div className="flex flex-wrap gap-4">
           <FlowGraphCard />
           <EnergyUsageCard />
         </div>
 
-        <DevicesSection />
+        <DevicesSection siteId={siteId} />
 
         <AlertsSection />
-      </div>
-    </div>
-  )
-}
-
-function MpptHealthCard() {
-  return (
-    <div className="border-border/60 min-w-[280px] flex-1 rounded-xl border p-5">
-      <h3 className="mb-4 text-base font-semibold text-[#1D1D1D]">
-        MPPT Health
-      </h3>
-      <div className="flex flex-wrap items-center gap-6">
-        {MOCK_MPPTS.map((m) => (
-          <span
-            key={m.label}
-            className="flex items-center gap-2 text-sm text-[#1D1D1D]"
-          >
-            <span
-              className={`h-2.5 w-2.5 rounded-full ${MPPT_STATUS[m.status]}`}
-            />
-            {m.label}
-          </span>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function BatteryCard() {
-  return (
-    <div className="border-border/60 w-full rounded-xl border p-5 sm:w-[300px]">
-      <div className="divide-border/40 flex flex-col divide-y">
-        {MOCK_BATTERIES.map((b) => (
-          <div
-            key={b.label}
-            className="flex items-center justify-between py-2.5 first:pt-0 last:pb-0"
-          >
-            <span className="text-sm text-[#1D1D1D]">{b.label}</span>
-            <span className="text-sm font-semibold text-[#1D1D1D]">
-              {b.value}
-            </span>
-          </div>
-        ))}
       </div>
     </div>
   )
@@ -406,28 +326,84 @@ function EnergyUsageCard() {
   )
 }
 
-function DeviceCard({
-  name,
-  type,
-  total,
-  online,
-}: (typeof MOCK_DEVICES)[number]) {
+const ONLINE_THRESHOLD_MINUTES = 15
+
+function isDeviceOnline(lastSeenAt: string | null): boolean {
+  if (!lastSeenAt) return false
+  const minutesSince = (Date.now() - new Date(lastSeenAt).getTime()) / 60_000
+  return minutesSince <= ONLINE_THRESHOLD_MINUTES
+}
+
+function capitalize(s: string): string {
+  return s.length === 0 ? s : s[0].toUpperCase() + s.slice(1)
+}
+
+type DeviceTelemetry = {
+  p_total_w?: number
+  kwh_total?: number
+}
+
+function parseTelemetryReading(raw: string | null): DeviceTelemetry | null {
+  if (!raw) return null
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    return parsed && typeof parsed === "object"
+      ? (parsed as DeviceTelemetry)
+      : null
+  } catch {
+    return null
+  }
+}
+
+function DeviceCard({ device }: { device: SiteDeviceModel }) {
+  const online = isDeviceOnline(device.last_seen_at)
+  const telemetry = parseTelemetryReading(device.recent_telemetry_reading)
+
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <span className="font-semibold text-[#1D1D1D]">{name}</span>
-        <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#00AEEF] px-3 py-1.5 text-xs font-semibold text-white">
-          <Activity className="h-3.5 w-3.5" /> On-Grid PPA
+        <span className="font-semibold text-[#1D1D1D]">
+          {capitalize(device.device_type)} · Slave {device.slave_id}
         </span>
       </div>
       <div className="divide-border/40 divide-y rounded-lg bg-[#F2F2F2]">
         <div className="flex items-center justify-between px-4 py-3 text-sm">
-          <span className="text-muted-foreground">Device Type</span>
-          <span className="font-semibold text-[#1D1D1D]">{type}</span>
+          <span className="text-muted-foreground">Slave ID</span>
+          <span className="font-semibold text-[#1D1D1D]">
+            {device.slave_id}
+          </span>
         </div>
+        {device.meter_role && (
+          <div className="flex items-center justify-between px-4 py-3 text-sm">
+            <span className="text-muted-foreground">Meter Role</span>
+            <span className="font-semibold text-[#1D1D1D]">
+              {device.meter_role}
+            </span>
+          </div>
+        )}
+        {typeof telemetry?.p_total_w === "number" && (
+          <div className="flex items-center justify-between px-4 py-3 text-sm">
+            <span className="text-muted-foreground">Total kW</span>
+            <span className="font-semibold text-[#1D1D1D]">
+              {(telemetry.p_total_w / 1000).toFixed(2)} kW
+            </span>
+          </div>
+        )}
+        {typeof telemetry?.kwh_total === "number" && (
+          <div className="flex items-center justify-between px-4 py-3 text-sm">
+            <span className="text-muted-foreground">Total Energy</span>
+            <span className="font-semibold text-[#1D1D1D]">
+              {telemetry.kwh_total.toLocaleString()} kWh
+            </span>
+          </div>
+        )}
         <div className="flex items-center justify-between px-4 py-3 text-sm">
-          <span className="text-muted-foreground">Total kW</span>
-          <span className="font-semibold text-[#1D1D1D]">{total}</span>
+          <span className="text-muted-foreground">Last Seen</span>
+          <span className="font-semibold text-[#1D1D1D]">
+            {device.last_seen_at
+              ? toLocalDateTime(device.last_seen_at)
+              : "Never"}
+          </span>
         </div>
       </div>
       <div
@@ -437,30 +413,52 @@ function DeviceCard({
             : "bg-[#FA4F19]/15 text-[#B8380D]"
         }`}
       >
-        {online ? "Online" : "Meter offline"}
+        {online ? "Online" : "Offline"}
         <Info className="h-4 w-4" />
       </div>
     </div>
   )
 }
 
-function DevicesSection() {
+function DevicesSection({ siteId }: { siteId: string }) {
+  const { data, isLoading, refetch, isFetching } = useSiteDevices(siteId)
+  const devices = data?.data ?? []
+
   return (
     <div className="border-border/60 rounded-xl border">
       <div className="border-border/60 flex items-center justify-between border-b px-5 py-4">
         <h3 className="text-base font-semibold text-[#1D1D1D]">Devices</h3>
         <button
-          className="text-[#FA4F19] hover:opacity-80"
+          onClick={() => refetch()}
+          disabled={isFetching}
+          className="text-[#FA4F19] hover:opacity-80 disabled:opacity-50"
           aria-label="Refresh devices"
         >
-          <RefreshCw className="h-4 w-4" />
+          <RefreshCw
+            className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`}
+          />
         </button>
       </div>
-      <div className="grid grid-cols-1 gap-5 p-5 sm:grid-cols-2">
-        {MOCK_DEVICES.map((d) => (
-          <DeviceCard key={d.name} {...d} />
-        ))}
-      </div>
+      {isLoading ? (
+        <div className="grid grid-cols-1 gap-5 p-5 sm:grid-cols-2">
+          {[0, 1].map((i) => (
+            <div
+              key={i}
+              className="bg-muted h-32 w-full animate-pulse rounded-lg"
+            />
+          ))}
+        </div>
+      ) : devices.length === 0 ? (
+        <p className="text-muted-foreground px-5 py-8 text-center text-sm">
+          No devices found for this site.
+        </p>
+      ) : (
+        <div className="grid grid-cols-1 gap-5 p-5 sm:grid-cols-2">
+          {devices.map((d) => (
+            <DeviceCard key={d.uid} device={d} />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
