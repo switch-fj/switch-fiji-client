@@ -1,6 +1,12 @@
 import api from "@/lib/axios"
 import { SITE } from "@/constants/api"
-import type { CreateSiteInput, SiteModel, SiteStats } from "@/types/site"
+import type {
+  CreateSiteInput,
+  PaginatedSitesWithMetrics,
+  SiteModel,
+  SiteStats,
+  SiteSummaryMetrics,
+} from "@/types/site"
 import type { ServerResponse } from "@/types/client"
 import { defaultAuthStorage, getApiBaseUrl } from "@workspace/api"
 
@@ -11,6 +17,32 @@ export const getSites = async (
 ): Promise<ServerResponse<SiteModel[]>> => {
   const { data } = await api.get<ServerResponse<SiteModel[]>>(
     SITE.LIST(clientUid)
+  )
+  return data
+}
+
+export type GetAllSitesParams = {
+  q?: string
+  limit?: number
+  next_cursor?: string
+  prev_cursor?: string
+}
+
+export const getAllSites = async (
+  params?: GetAllSitesParams
+): Promise<ServerResponse<PaginatedSitesWithMetrics>> => {
+  const { data } = await api.get<ServerResponse<PaginatedSitesWithMetrics>>(
+    SITE.ALL,
+    { params }
+  )
+  return data
+}
+
+export const getSitesSummary = async (): Promise<
+  ServerResponse<SiteSummaryMetrics>
+> => {
+  const { data } = await api.get<ServerResponse<SiteSummaryMetrics>>(
+    SITE.SUMMARY
   )
   return data
 }

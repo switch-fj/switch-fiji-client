@@ -1,138 +1,139 @@
 "use client"
 
-import { useMemo, useState } from "react"
-import { FilterSelect, SearchInput, type FilterOption } from "@workspace/ui"
-import { Search, Zap, FileText } from "lucide-react"
-import type { PortfolioStats } from "@/types/portfolio"
+import { ArrowDown, ArrowUp } from "lucide-react"
+import type { SiteSummaryMetrics } from "@/types/site"
 
 type DashboardHeadersProps = {
-  portfolioStats?: PortfolioStats | null
-  isLoadingStats?: boolean
-  searchPlaceholder?: string
-  searchValue?: string
-  onSearchChange?: (value: string) => void
-  filterValue?: string
-  onFilterChange?: (value: string) => void
-  filterOptions?: FilterOption[]
+  summary?: SiteSummaryMetrics | null
+  isLoadingSummary?: boolean
 }
 
-const defaultFilterOptions: FilterOption[] = [
-  { label: "All clients", value: "all" },
-  { label: "Active", value: "active" },
-  { label: "Inactive", value: "inactive" },
-]
+const fmtNum = (n: number) =>
+  n.toLocaleString(undefined, { maximumFractionDigits: 0 })
 
-function StatTile({
-  icon,
+function StatCard({
   label,
   value,
+  deltaDirection,
+  deltaText,
   sub,
 }: {
-  icon: React.ReactNode
   label: string
-  value: string
+  value: React.ReactNode
+  deltaDirection?: "up" | "down"
+  deltaText?: string
   sub?: string
 }) {
   return (
-    <div className="bg-primary flex items-center gap-3 rounded-md px-4 py-3">
-      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20">
-        {icon}
-      </div>
-      <div>
-        <p className="text-xs font-medium text-white/70">{label}</p>
-        <p className="text-xl font-semibold text-white">{value}</p>
-        {sub && <p className="text-xs text-white/60">{sub}</p>}
-      </div>
+    <div className="min-w-[210px] flex-1 rounded-lg border border-neutral-200 bg-white px-5 py-4">
+      <p className="text-[11px] font-semibold tracking-wide text-neutral-500 uppercase">
+        {label}
+      </p>
+      <p className="mt-1 text-2xl font-semibold text-neutral-900">{value}</p>
+      {deltaText ? (
+        <p
+          className={`mt-1 flex items-center gap-1 text-xs font-medium ${
+            deltaDirection === "down" ? "text-red-600" : "text-green-600"
+          }`}
+        >
+          {deltaDirection === "down" ? (
+            <ArrowDown className="h-3 w-3" />
+          ) : (
+            <ArrowUp className="h-3 w-3" />
+          )}
+          {deltaText}
+        </p>
+      ) : sub ? (
+        <p className="mt-1 text-xs text-neutral-500">{sub}</p>
+      ) : null}
     </div>
   )
 }
 
 export default function DashboardHeaders({
-  portfolioStats,
-  isLoadingStats,
-  searchPlaceholder = "Search Sites, clients",
-  searchValue,
-  onSearchChange,
-  filterValue,
-  onFilterChange,
-  filterOptions,
+  summary,
+  isLoadingSummary,
 }: DashboardHeadersProps) {
-  const [localSearch, setLocalSearch] = useState("")
-  const [localFilter, setLocalFilter] = useState("all")
+  const today = new Date().getDate()
 
-  const resolvedSearch = searchValue ?? localSearch
-  const resolvedFilter = filterValue ?? localFilter
-  const options = useMemo(
-    () => filterOptions ?? defaultFilterOptions,
-    [filterOptions]
-  )
+  const productionDelta =
+    summary &&
+    summary.production_mtd_kwh != null &&
+    summary.last_month_production_kwh != null &&
+    summary.last_month_production_kwh !== 0
+      ? ((summary.production_mtd_kwh - summary.last_month_production_kwh) /
+          summary.last_month_production_kwh) *
+        100
+      : null
 
-  const fmt = (n: number) =>
-    n >= 1000 ? `${(n / 1000).toFixed(1)}k` : n.toFixed(1)
+  const totalBilled = summary?.total_bill_from_inception
+    ? parseFloat(summary.total_bill_from_inception)
+    : null
+
+  const health = summary?.site_health
+
+  if (isLoadingSummary) {
+    return (
+      <div className="flex flex-wrap gap-3 px-4 py-3">
+        {[0, 1, 2].map((i) => (
+          <div
+            key={i}
+            className="h-[74px] w-[210px] flex-1 animate-pulse rounded-lg border border-neutral-200 bg-neutral-100"
+          />
+        ))}
+      </div>
+    )
+  }
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-      <div className="flex flex-wrap gap-3">
-        {isLoadingStats ? (
-          <>
-            <div className="bg-primary/20 h-16 w-56 animate-pulse rounded-md" />
-            <div className="bg-primary/20 h-16 w-56 animate-pulse rounded-md" />
-          </>
-        ) : (
-          <>
-            <StatTile
-              icon={<Zap className="h-4 w-4 text-white" />}
-              label="Production this month"
-              value={
-                portfolioStats ? `${fmt(portfolioStats.produced_kwh)} kWh` : "—"
-              }
-              sub={
-                portfolioStats
-                  ? `Baseline ${fmt(portfolioStats.baseline_kwh)} kWh`
-                  : undefined
-              }
-            />
-            <StatTile
-              icon={<FileText className="h-4 w-4 text-white" />}
-              label="Invoice total this month"
-              value={
-                portfolioStats
-                  ? `FJD ${portfolioStats.invoice_total.toLocaleString()}`
-                  : "—"
-              }
-              sub={
-                portfolioStats
-                  ? `${portfolioStats.invoice_count} invoice${portfolioStats.invoice_count !== 1 ? "s" : ""}`
-                  : undefined
-              }
-            />
-          </>
-        )}
-      </div>
+    <div className="flex flex-wrap gap-3 px-4 py-3">
+      <StatCard
+        label={`Production, MTD (Day ${today})`}
+        value={
+          summary?.production_mtd_kwh != null
+            ? `${fmtNum(summary.production_mtd_kwh)} kWh`
+            : "—"
+        }
+        deltaDirection={
+          productionDelta != null && productionDelta < 0 ? "down" : "up"
+        }
+        deltaText={
+          productionDelta != null
+            ? `${productionDelta >= 0 ? "+" : ""}${productionDelta.toFixed(0)}% vs last month`
+            : undefined
+        }
+        sub={
+          summary?.last_month_production_kwh != null
+            ? `${fmtNum(summary.last_month_production_kwh)} kWh last month`
+            : undefined
+        }
+      />
 
-      <div className="flex w-full flex-wrap items-center justify-end gap-3 sm:w-auto">
-        <div className="w-full sm:w-64">
-          <SearchInput
-            icon={<Search className="text-primary h-4 w-4" />}
-            value={resolvedSearch}
-            placeholder={searchPlaceholder}
-            onChange={(value) => {
-              setLocalSearch(value)
-              onSearchChange?.(value)
-            }}
-          />
-        </div>
-        <FilterSelect
-          value={resolvedFilter}
-          options={options}
-          placeholder="All clients"
-          className="min-w-[170px]"
-          onChange={(value) => {
-            setLocalFilter(value)
-            onFilterChange?.(value)
-          }}
-        />
-      </div>
+      <StatCard
+        label="Total Billed"
+        value={
+          totalBilled != null
+            ? `FJD ${totalBilled.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
+            : "—"
+        }
+        sub="since inception"
+      />
+
+      <StatCard
+        label="Site Health"
+        value={health ? `${health.healthy} / ${health.total} healthy` : "—"}
+        sub={
+          health
+            ? `${health.faulty} faulty · ${health.unprovisioned} unprovisioned`
+            : undefined
+        }
+        deltaDirection={health && health.faulty > 0 ? "down" : undefined}
+        deltaText={
+          health && health.faulty > 0
+            ? `${health.faulty} faulty · ${health.unprovisioned} unprovisioned`
+            : undefined
+        }
+      />
     </div>
   )
 }
