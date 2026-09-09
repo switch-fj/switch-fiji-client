@@ -17,6 +17,8 @@ export const CLIENT = {
 
 export const SITE = {
   LIST: (clientUid: string) => `/api/v1/admin/sites/${clientUid}`,
+  ALL: "/api/v1/admin/sites",
+  SUMMARY: "/api/v1/admin/sites/summary",
   ADD: "/api/v1/admin/site/add",
   STATS_STREAM: (siteUid: string) =>
     `/api/v1/admin/sites/${siteUid}/stats/stream`,
@@ -41,10 +43,6 @@ export const INVOICE = {
 export const JOBRUN = {
   COMPUTE_INVOICE: "/api/v1/jobrun/invoice/compute",
   LIST: "/api/v1/jobrun/user",
-} as const
-
-export const PORTFOLIO = {
-  STATS: "/api/v1/admin/portfolio/stats",
 } as const
 
 export const ENGINEER = {

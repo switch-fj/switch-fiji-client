@@ -1,8 +1,15 @@
 "use client"
 
-import { useForm } from "react-hook-form"
+import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Button } from "@workspace/ui"
+import {
+  Button,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@workspace/ui"
 import {
   Dialog,
   DialogContent,
@@ -12,28 +19,32 @@ import {
 } from "@workspace/ui"
 import { CreateSiteSchema, type CreateSiteInput } from "@/types/site"
 import { useAddSite } from "@/hooks/useSite"
+import { useAllClients } from "@/hooks/useClient"
 
 type AddSiteModalProps = {
   open: boolean
-  clientUid: string
   onClose: () => void
+  /** Preselect and lock the client (e.g. when opened from a client's own context). */
+  clientUid?: string
 }
 
 export default function AddSiteModal({
   open,
-  clientUid,
   onClose,
+  clientUid,
 }: AddSiteModalProps) {
   const { mutate: addSite, isPending } = useAddSite()
+  const { data: clients, isLoading: isLoadingClients } = useAllClients()
 
   const {
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors },
   } = useForm<CreateSiteInput>({
     resolver: zodResolver(CreateSiteSchema),
-    defaultValues: { client_uid: clientUid },
+    defaultValues: { client_uid: clientUid ?? "" },
   })
 
   const handleClose = () => {
@@ -51,12 +62,47 @@ export default function AddSiteModal({
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">Add Site</DialogTitle>
           <DialogDescription className="text-muted-foreground text-sm">
-            Add a new site to this client.
+            Add a new site to a client.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="mt-2 space-y-4">
-          <input type="hidden" {...register("client_uid")} />
+          {clientUid ? (
+            <input type="hidden" {...register("client_uid")} />
+          ) : (
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Client</label>
+              <Controller
+                name="client_uid"
+                control={control}
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger className="w-full bg-white font-normal">
+                      <SelectValue
+                        placeholder={
+                          isLoadingClients
+                            ? "Loading clients…"
+                            : "Select a client"
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(clients ?? []).map((client) => (
+                        <SelectItem key={client.uid} value={client.uid}>
+                          {client.client_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.client_uid && (
+                <p className="text-destructive text-xs">
+                  {errors.client_uid.message}
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="space-y-1">
             <label className="text-sm font-medium">Site Name</label>

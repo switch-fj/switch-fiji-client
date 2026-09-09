@@ -1,5 +1,6 @@
 import { z } from "zod"
 import { EnumContractType, EnumContractSystemMode } from "@/constants/mangle"
+import type { CursorPagination } from "@/types/client"
 
 export const CreateSiteSchema = z.object({
   client_uid: z.string().uuid("Invalid client UID"),
@@ -166,6 +167,74 @@ export type SiteStats = {
   grid_power?: number | null
   status?: string | null
   [key: string]: string | number | null | undefined
+}
+
+// ── /api/v1/admin/sites (portfolio-wide sites with metrics) ─────────────────
+
+export type SiteDeviceModel = {
+  uid: string
+  created_at: string
+  updated_at: string
+  site_uid: string
+  slave_id: number
+  device_type: string
+  meter_role: string | null
+  is_dual_tariff: boolean | null
+  recent_telemetry_reading: string | null
+  last_seen_at: string | null
+}
+
+export type SiteData = {
+  uid: string
+  created_at: string
+  updated_at: string
+  client_uid: string
+  site_id: string | null
+  site_name: string | null
+  gateway_id: string | null
+  firmware: string | null
+  first_seen_at: string | null
+}
+
+export type SitePortfolioMetrics = {
+  production_mtd_kwh: number | null
+  last_month_production_kwh: number | null
+  coverage_actual_pct: number | null
+  coverage_target_pct: number | null
+  coverage_numerator_kwh: number | null
+  coverage_denominator_kwh: number | null
+  // Decimal, serialized as a string by the API.
+  total_bill_from_inception: string | null
+  billing_frequency: string | null
+}
+
+export type SiteWithMetrics = {
+  site: SiteData
+  devices: SiteDeviceModel[]
+  contract: ContractModel | null
+  metrics: SitePortfolioMetrics
+}
+
+export type PaginatedSitesWithMetrics = {
+  items: SiteWithMetrics[]
+  pagination: CursorPagination
+}
+
+// ── /api/v1/admin/sites/summary (portfolio-wide stat tiles) ────────────────
+
+export type SiteHealthSummary = {
+  healthy: number
+  faulty: number
+  unprovisioned: number
+  total: number
+}
+
+export type SiteSummaryMetrics = {
+  production_mtd_kwh: number | null
+  last_month_production_kwh: number | null
+  // Decimal, serialized as a string by the API.
+  total_bill_from_inception: string | null
+  site_health: SiteHealthSummary
 }
 
 export type ContractDetailsSheetProps = {
