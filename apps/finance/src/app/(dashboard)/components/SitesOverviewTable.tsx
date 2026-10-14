@@ -1,18 +1,7 @@
 "use client"
 
-import { useState } from "react"
 import { useRouter } from "next/navigation"
-import {
-  ChevronDown,
-  ChevronRight,
-  ExternalLink,
-  Wrench,
-  Sparkles,
-  Check,
-  ArrowUp,
-  ArrowDown,
-} from "lucide-react"
-import { Button } from "@workspace/ui"
+import { Wrench, Sparkles, Check, ArrowUp, ArrowDown } from "lucide-react"
 import { EnumContractType, EnumContractSystemMode } from "@/constants/mangle"
 import type { ClientModel } from "@/types/client"
 import type { SitePortfolioMetrics, SiteWithMetrics } from "@/types/site"
@@ -290,103 +279,64 @@ function SiteRow({
   index: number
 }) {
   const router = useRouter()
-  const [expanded, setExpanded] = useState(false)
   const badge = systemBadge(entry.contract)
 
+  const openSite = () =>
+    router.push(
+      `/sites/${entry.site.uid}?` +
+        new URLSearchParams({
+          ...(client?.uid ? { clientUid: client.uid } : {}),
+          ...(entry.contract?.uid ? { contractUid: entry.contract.uid } : {}),
+        }).toString()
+    )
+
   return (
-    <>
-      <tr className="border-b last:border-0 hover:bg-neutral-50">
-        <td className="px-4 py-3">
-          <button
-            onClick={() => setExpanded((v) => !v)}
-            className="flex items-center gap-2 text-left"
-          >
-            {expanded ? (
-              <ChevronDown className="text-muted-foreground h-4 w-4 shrink-0" />
-            ) : (
-              <ChevronRight className="text-muted-foreground h-4 w-4 shrink-0" />
-            )}
-            <span>
-              <span className="flex items-center gap-2">
-                <span className="text-sm font-semibold">
-                  {client?.client_name ?? "Unknown client"}
-                </span>
-                {badge && (
-                  <span
-                    className={`rounded-xs px-1.5 py-0.5 text-[10px] font-semibold ${badge.tone}`}
-                  >
-                    {badge.label}
-                  </span>
-                )}
-              </span>
-              <span className="text-muted-foreground block text-xs">
-                {entry.site.site_name ?? "Unnamed site"}
-                {entry.site.site_id ? ` · ${entry.site.site_id}` : ""}
-              </span>
+    <tr
+      role="link"
+      tabIndex={0}
+      onClick={openSite}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") openSite()
+      }}
+      className="cursor-pointer border-b last:border-0 hover:bg-neutral-50 focus-visible:bg-neutral-50 focus-visible:outline-none"
+    >
+      <td className="px-4 py-3">
+        <span className="flex items-center gap-2">
+          <span className="text-sm font-semibold">
+            {client?.client_name ?? "Unknown client"}
+          </span>
+          {badge && (
+            <span
+              className={`rounded-xs px-1.5 py-0.5 text-[10px] font-semibold ${badge.tone}`}
+            >
+              {badge.label}
             </span>
-          </button>
-        </td>
-        <td className="px-4 py-3">
-          <ProductionCell metrics={entry.metrics} />
-        </td>
-        <td className="px-4 py-3">
-          <TrendCell index={index} />
-        </td>
-        <td className="px-4 py-3">
-          <SignalsCell index={index} />
-        </td>
-        <td className="px-4 py-3">
-          <CoverageCell metrics={entry.metrics} />
-        </td>
-        <td className="px-4 py-3">
-          <BilledCell
-            metrics={entry.metrics}
-            currency={entry.contract?.currency ?? "FJD"}
-          />
-        </td>
-      </tr>
-      {expanded && (
-        <tr className="border-b bg-neutral-50/70 last:border-0">
-          <td colSpan={6} className="px-4 py-3">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="text-muted-foreground grid grid-cols-[auto_auto] justify-start gap-x-6 gap-y-1 text-xs">
-                <span>Devices</span>
-                <span className="text-foreground font-semibold">
-                  {entry.devices.length}
-                </span>
-                <span>Gateway ID</span>
-                <span className="text-foreground font-semibold">
-                  {entry.site.gateway_id ?? "—"}
-                </span>
-                <span>Firmware</span>
-                <span className="text-foreground font-semibold">
-                  {entry.site.firmware ?? "—"}
-                </span>
-              </div>
-              <Button
-                className="max-w-40 shrink-0 gap-2 rounded-sm text-sm"
-                size="md"
-                variant="primary"
-                onClick={() =>
-                  router.push(
-                    `/sites/${entry.site.uid}?` +
-                      new URLSearchParams({
-                        ...(client?.uid ? { clientUid: client.uid } : {}),
-                        ...(entry.contract?.uid
-                          ? { contractUid: entry.contract.uid }
-                          : {}),
-                      }).toString()
-                  )
-                }
-              >
-                <ExternalLink className="h-4 w-4" />
-                Open Site
-              </Button>
-            </div>
-          </td>
-        </tr>
-      )}
-    </>
+          )}
+        </span>
+        <span className="text-muted-foreground block text-xs">
+          {entry.site.site_name ?? "Unnamed site"}
+          {entry.site.site_id ? ` · ${entry.site.site_id}` : ""}
+        </span>
+      </td>
+      <td className="px-4 py-3">
+        <ProductionCell metrics={entry.metrics} />
+      </td>
+      <td className="px-4 py-3">
+        <TrendCell index={index} />
+      </td>
+      <td className="px-4 py-3">
+        <SignalsCell index={index} />
+      </td>
+      <td className="px-4 py-3">
+        <CoverageCell metrics={entry.metrics} />
+      </td>
+      <td className="px-4 py-3">
+        <BilledCell
+          metrics={entry.metrics}
+          currency={entry.contract?.currency ?? "FJD"}
+        />
+      </td>
+    </tr>
   )
 }
 
