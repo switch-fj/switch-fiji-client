@@ -31,3 +31,8 @@ export const SITE = {
 export const DEVICE = {
   BY_SITE: (siteUid: string) => `/api/v1/device/site/${siteUid}`,
 } as const
+
+// Note: singular "site", unlike the SITE group above — a distinct route.
+export const FLOW_GRAPH = {
+  STREAM: (siteUid: string) => `/api/v1/site/${siteUid}/flow-graph/stream`,
+} as const

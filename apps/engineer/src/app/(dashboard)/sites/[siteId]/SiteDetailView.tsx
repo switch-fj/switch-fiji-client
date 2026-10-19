@@ -16,6 +16,7 @@ import {
   type LucideIcon,
 } from "lucide-react"
 import { useSiteDevices } from "@/hooks/useSitePanels"
+import { useFlowGraphStream } from "@/hooks/useFlowGraphStream"
 import { toLocalDateTime } from "@/utils/date"
 import type { SiteDeviceModel } from "@/types/engineer"
 
@@ -94,7 +95,7 @@ export function SiteDetailView({
 
       <div className="flex flex-col gap-5 p-6">
         <div className="flex flex-wrap gap-4">
-          <FlowGraphCard />
+          <FlowGraphCard siteId={siteId} />
           <EnergyUsageCard />
         </div>
 
@@ -148,12 +149,38 @@ function FlowNode({
   )
 }
 
-function FlowGraphCard() {
+function formatKw(watts: number | undefined): string | undefined {
+  if (watts === undefined) return undefined
+  return `${(watts / 1000).toFixed(2)} kW`
+}
+
+function FlowGraphCard({ siteId }: { siteId: string }) {
+  const { data, status } = useFlowGraphStream(siteId)
+  const graph = data?.graph
+
+  const solarKw = formatKw(graph?.solar)
+  // The "Activity" node sits opposite solar in the diagram; aux_loads is the
+  // best fit among the remaining fields (micro_inv is a generation source,
+  // grid/consumption/battery are already mapped to their own nodes below).
+  const auxLoadsKw = formatKw(graph?.aux_loads)
+  const batteryKw = formatKw(graph?.battery)
+  const consumptionKw = formatKw(graph?.consumption)
+  const gridKw = formatKw(graph?.grid)
+
   return (
     <div className="border-border/60 min-w-[320px] flex-1 rounded-xl border p-5">
-      <h3 className="mb-2 text-base font-semibold text-[#1D1D1D]">
-        Flow Graph
-      </h3>
+      <div className="mb-2 flex items-center justify-between">
+        <h3 className="text-base font-semibold text-[#1D1D1D]">Flow Graph</h3>
+        {status === "connecting" && !data && (
+          <span className="text-muted-foreground text-xs">Connecting…</span>
+        )}
+        {status === "error" && !data && (
+          <span className="text-xs text-red-600">Stream unavailable</span>
+        )}
+        {data && (
+          <span className="text-muted-foreground text-xs">{data.status}</span>
+        )}
+      </div>
       <div className="relative mx-auto mt-6 h-56 w-full max-w-[420px]">
         <svg
           viewBox="0 0 420 220"
@@ -184,16 +211,10 @@ function FlowGraphCard() {
           </defs>
         </svg>
 
-        <FlowNode
-          icon={Sun}
-          value="90.52 kW"
-          left="17%"
-          top="18%"
-          tone="blue"
-        />
+        <FlowNode icon={Sun} value={solarKw} left="17%" top="18%" tone="blue" />
         <FlowNode
           icon={Activity}
-          value="2.43 kW"
+          value={auxLoadsKw}
           left="83%"
           top="18%"
           tone="dark"
@@ -201,21 +222,21 @@ function FlowGraphCard() {
         <FlowNode icon={Server} left="50%" top="45%" tone="navy" />
         <FlowNode
           icon={BatteryCharging}
-          value="27.52 kW"
+          value={batteryKw}
           left="17%"
           top="82%"
           tone="green"
         />
         <FlowNode
           icon={HousePlus}
-          value="46.34 kW"
+          value={consumptionKw}
           left="50%"
           top="82%"
           tone="orange"
         />
         <FlowNode
           icon={RadioTower}
-          value="34.34 kW"
+          value={gridKw}
           left="83%"
           top="82%"
           tone="navy"
