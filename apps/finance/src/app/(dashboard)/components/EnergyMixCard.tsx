@@ -29,7 +29,14 @@ function parseEnergyMix(raw: string | null): Slice[] {
   }
 }
 
+// Total usage is load net of backup generation, not the sum of all slices.
+function netUsage(slices: Slice[]): number {
+  const valueOf = (key: string) => slices.find((s) => s.key === key)?.value ?? 0
+  return valueOf("load") - valueOf("backup_gen")
+}
+
 function DonutChart({ slices, total }: { slices: Slice[]; total: number }) {
+  const sliceSum = slices.reduce((sum, s) => sum + s.value, 0)
   const r = 58
   const cx = 88
   const cy = 88
@@ -51,7 +58,7 @@ function DonutChart({ slices, total }: { slices: Slice[]; total: number }) {
         />
       ) : (
         slices.map((slice) => {
-          const fraction = slice.value / total
+          const fraction = slice.value / sliceSum
           const dashLen = fraction * circumference
           const startDeg = cumulativeFraction * 360 - 90
           cumulativeFraction += fraction
@@ -110,7 +117,7 @@ export default function EnergyMixCard({
   periodLabel,
 }: Props) {
   const slices = parseEnergyMix(energyMix)
-  const total = slices.reduce((sum, s) => sum + s.value, 0)
+  const total = netUsage(slices)
 
   return (
     <div className="overflow-hidden rounded-xl border bg-white">
