@@ -23,6 +23,7 @@ import SettingsSelect from "./SettingsSelect"
 import NotificationRow from "./NotificationRow"
 import RateHistoryTable from "./RateHistoryTable"
 import UsersTable from "./UsersTable"
+import XeroIntegrationSection from "./XeroIntegrationSection"
 import { useUsers } from "@/hooks/useEngineer"
 
 function toFormValues(s: ContractSettingsRespModel): ContractSettingsInput {
@@ -282,6 +283,8 @@ const SettingsPage = observer(() => {
           </div>
         </div>
       </div>
+
+      <XeroIntegrationSection />
 
       {/* Engineer access */}
       <div className="border-t px-8 py-8">

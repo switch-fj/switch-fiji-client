@@ -55,3 +55,8 @@ export const SETTINGS = {
   EFL_HISTORY: "/api/v1/settings/efl-rate-history",
   VAT_HISTORY: "/api/v1/settings/vat-rate-history",
 } as const
+
+export const XERO = {
+  SETTINGS: "/api/v1/integrations/xero/settings",
+  TAX_MAPPINGS: "/api/v1/integrations/xero/tax-mappings",
+} as const
