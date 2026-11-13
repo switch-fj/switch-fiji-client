@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
+import { fetchAllCursorPages } from "@workspace/api"
 import {
   getEngineerStats,
   getEngineerClients,
@@ -9,7 +10,11 @@ import {
   updateClient,
   updateSite,
 } from "@/requests/engineer"
-import type { UpdateClientInput, UpdateSiteInput } from "@/types/engineer"
+import type {
+  EngineeringDashboardClient,
+  UpdateClientInput,
+  UpdateSiteInput,
+} from "@/types/engineer"
 
 export const ENGINEER_KEYS = {
   stats: ["engineer", "stats"] as const,
@@ -25,10 +30,15 @@ export const useEngineerStats = () => {
   })
 }
 
+// Every client (with its sites and devices) across all cursor pages — the
+// overview needs the full portfolio to build per-site rows and totals.
 export const useEngineerClients = () => {
   return useQuery({
     queryKey: ENGINEER_KEYS.clients,
-    queryFn: getEngineerClients,
+    queryFn: () =>
+      fetchAllCursorPages<EngineeringDashboardClient>((cursor) =>
+        getEngineerClients({ limit: 100, next_cursor: cursor })
+      ),
   })
 }
 

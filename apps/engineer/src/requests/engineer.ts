@@ -21,11 +21,18 @@ export const getEngineerStats = async (): Promise<
   return data
 }
 
-export const getEngineerClients = async (): Promise<
-  ServerResponse<PaginatedEngineerClients>
-> => {
+export type GetEngineerClientsParams = {
+  q?: string
+  limit?: number
+  next_cursor?: string
+}
+
+export const getEngineerClients = async (
+  params?: GetEngineerClientsParams
+): Promise<ServerResponse<PaginatedEngineerClients>> => {
   const { data } = await api.get<ServerResponse<PaginatedEngineerClients>>(
-    ENGINEER.CLIENTS
+    ENGINEER.CLIENTS,
+    { params }
   )
   return data
 }

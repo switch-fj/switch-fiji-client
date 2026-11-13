@@ -76,7 +76,10 @@ api.interceptors.response.use(
 
     const message =
       error.response?.data?.message ?? error.message ?? "Request failed"
-    return Promise.reject(new Error(message))
+    // Keep the HTTP status so callers can tell e.g. 404 from 403.
+    return Promise.reject(
+      Object.assign(new Error(message), { status: error.response?.status })
+    )
   }
 )
 

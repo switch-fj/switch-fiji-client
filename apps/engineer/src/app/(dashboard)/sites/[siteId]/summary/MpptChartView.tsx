@@ -24,17 +24,11 @@ import type {
   BatterySocConfigInputItem,
 } from "@/types/engineer"
 import { PvSummaryDialog } from "./PvSummaryDialog"
+import { SETUP_VIEWS, type SetupViewKey } from "./setupViews"
 import { DegradationDialog } from "./DegradationDialog"
 import { PanelConfigDialog } from "./PanelConfigDialog"
 import { StringWiringDialog } from "./StringWiringDialog"
 import { BatteryConfigDialog } from "./BatteryConfigDialog"
-
-const TABS = [
-  "Chart View",
-  "Panel Config",
-  "PV Summary",
-  "Battery SOC",
-] as const
 
 // ---- Chart View ----
 
@@ -159,11 +153,24 @@ function TableBanner({ children }: { children: React.ReactNode }) {
 
 type MpptChartViewProps = {
   siteId: string
+  siteName: string
+  view: SetupViewKey
+  onViewChange: (view: SetupViewKey) => void
   onBack: () => void
 }
 
-export function MpptChartView({ siteId, onBack }: MpptChartViewProps) {
-  const [activeTab, setActiveTab] = useState(0)
+export function MpptChartView({
+  siteId,
+  siteName,
+  view,
+  onViewChange,
+  onBack,
+}: MpptChartViewProps) {
+  // Index form of `view`, matching the panels below.
+  const activeTab = Math.max(
+    0,
+    SETUP_VIEWS.findIndex((v) => v.key === view)
+  )
   const [checkDate, setCheckDate] = useState(() => new Date())
 
   const { data: pvsRes } = useSitePvs(siteId)
@@ -194,29 +201,37 @@ export function MpptChartView({ siteId, onBack }: MpptChartViewProps) {
   return (
     <div className="flex flex-col">
       {/* Header */}
-      <button
-        onClick={onBack}
-        className="border-border/60 hover:bg-muted/20 flex w-full items-center gap-3 border-b px-6 py-5 text-left transition-colors"
-      >
-        <ChevronLeft className="text-muted-foreground h-6 w-6" />
-        <h1 className="text-xl font-bold text-[#1D1D1D]">Dashboard</h1>
-      </button>
+      <div className="border-border/60 flex items-center gap-3 border-b px-6 py-5">
+        <button
+          onClick={onBack}
+          className="text-muted-foreground hover:text-foreground transition-colors"
+          aria-label={`Back to ${siteName}`}
+          title={`Back to ${siteName}`}
+        >
+          <ChevronLeft className="h-6 w-6" />
+        </button>
+        <div>
+          <p className="text-muted-foreground text-sm">{siteName}</p>
+          <h1 className="text-xl font-bold text-[#1D1D1D]">System setup</h1>
+        </div>
+      </div>
 
       <div className="flex flex-col gap-5 p-6">
         <div className="border-border/60 rounded-xl border p-5">
           <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-6">
-              {TABS.map((tab, i) => (
+              {SETUP_VIEWS.map((tab, i) => (
                 <button
-                  key={i}
-                  onClick={() => setActiveTab(i)}
+                  key={tab.key}
+                  onClick={() => onViewChange(tab.key)}
+                  title={tab.hint}
                   className={`pb-1 text-sm font-medium transition-colors ${
                     activeTab === i
                       ? "border-b-2 border-[#024159] font-semibold text-[#1D1D1D]"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  {tab}
+                  {tab.label}
                 </button>
               ))}
             </div>
