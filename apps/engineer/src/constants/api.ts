@@ -26,6 +26,14 @@ export const SITE = {
   BATTERY_SOC: (siteUid: string) => `/api/v1/sites/${siteUid}/battery-soc`,
   BATTERY_CONFIG: (siteUid: string) =>
     `/api/v1/sites/${siteUid}/battery-config`,
+  PRODUCTION_HISTORY: (siteUid: string) =>
+    `/api/v1/sites/${siteUid}/production-history`,
+  PRODUCTION_YTD: (siteUid: string) =>
+    `/api/v1/sites/${siteUid}/production-ytd`,
+  MAINTENANCE_LOGS: (siteUid: string) =>
+    `/api/v1/sites/${siteUid}/maintenance-logs`,
+  MAINTENANCE_LOG: (siteUid: string, logUid: string) =>
+    `/api/v1/sites/${siteUid}/maintenance-logs/${logUid}`,
 } as const
 
 export const DEVICE = {

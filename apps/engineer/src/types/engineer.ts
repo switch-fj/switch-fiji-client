@@ -274,3 +274,140 @@ export type SiteBatteryConfig = {
   effective_from: string
   effective_to: string | null
 }
+
+export type MaintenanceType = "cleaning" | "servicing" | "repair" | "other"
+
+export type MaintenanceLog = {
+  uid: string
+  created_at: string
+  updated_at: string
+  site_uid: string
+  maintenance_type: MaintenanceType
+  /** Date-only, "YYYY-MM-DD". */
+  performed_on: string
+  personnel: string
+  work_performed: string
+  recorded_by_uid: string
+  last_edited_by_uid: string | null
+}
+
+export type CreateMaintenanceLogInput = {
+  maintenance_type: MaintenanceType
+  performed_on: string
+  personnel: string
+  work_performed: string
+}
+
+export type UpdateMaintenanceLogInput = Partial<CreateMaintenanceLogInput>
+
+export type OffsetPagination = {
+  total: number
+  current_page: number
+  limit: number
+  total_pages: number
+}
+
+export type PaginatedMaintenanceLogs = {
+  items: MaintenanceLog[]
+  pagination: OffsetPagination
+}
+
+export type MaintenanceLogQuery = {
+  page?: number
+  limit?: number
+  maintenance_type?: MaintenanceType
+  from_date?: string
+  to_date?: string
+}
+
+export type ProductionStatus =
+  | "pending"
+  | "complete"
+  | "missing"
+  | "invalid"
+  | "unsupported"
+  | "error"
+
+export type ProductionDay = {
+  /** Date-only, "YYYY-MM-DD", in the site's timezone. */
+  date_at: string
+  status: ProductionStatus
+  production_kwh?: number | null
+  reason?: string | null
+  computed_at?: string | null
+  start_reading_at?: string | null
+  end_reading_at?: string | null
+}
+
+export type ProductionHistory = {
+  site_uid: string
+  timezone: string
+  from_date: string
+  to_date: string
+  calculation_method?: string
+  items: ProductionDay[]
+}
+
+// ── Year-to-date production ────────────────────────────────────────────────
+
+export type ProductionCoverage = {
+  calendar_days: number
+  eligible_days: number
+  excluded_days: number
+  complete: number
+  pending: number
+  unqueued: number
+  missing: number
+  invalid: number
+  unsupported: number
+  failed: number
+}
+
+export type ProductionTotals = {
+  actual_production_kwh: number | null
+  is_complete: boolean
+  coverage: ProductionCoverage
+  expected_production_kwh: number | null
+  expected_days: number
+  expected_is_complete: boolean
+  comparison_actual_kwh: number | null
+  comparison_expected_kwh: number | null
+  comparison_days: number
+  comparison_is_complete: boolean
+  performance_ratio: number | null
+}
+
+export type ProductionMonth = {
+  /** "YYYY-MM", oldest first. */
+  month: string
+  from_date: string
+  to_date: string
+  /** This month only. */
+  totals: ProductionTotals
+  /** 1 January through this month's to_date — already summed. */
+  cumulative: ProductionTotals
+}
+
+export type BaselineReason =
+  | "missing_baseline_configuration"
+  | "invalid_baseline_commissioning"
+  | "invalid_baseline_schedule"
+  | "baseline_month_alignment_mismatch"
+  | "incomplete_baseline_coverage"
+
+export type ProductionYTD = {
+  site_uid: string
+  year: number
+  timezone: string
+  from_date: string
+  /** null on 1 January — no completed days yet. */
+  to_date: string | null
+  calculation_method: string
+  baseline_method: string
+  baseline_reason: BaselineReason | (string & {}) | null
+  totals: ProductionTotals
+  months: ProductionMonth[]
+  queued_days: number
+  needs_polling: boolean
+  dispatch_failed: boolean
+}
