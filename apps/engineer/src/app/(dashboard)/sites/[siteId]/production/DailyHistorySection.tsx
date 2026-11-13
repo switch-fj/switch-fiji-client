@@ -6,11 +6,13 @@ import { ArrowDown, ArrowUp, CircleAlert } from "lucide-react"
 import { RangeControl } from "@/app/(dashboard)/components/RangeControl"
 import { PRODUCTION_KEYS } from "@/hooks/useSiteOverviews"
 import { getProductionHistory } from "@/requests/productionHistory"
+import { useSiteTimezone } from "@/utils/siteTimezone"
 import type { ProductionStatus } from "@/types/engineer"
 import {
   ISSUE_STATUSES,
   PRODUCTION_STATUS_LABEL,
   fetchRangeFor,
+  latestCompleteDay,
   formatKwh,
   formatRange,
   presetRange,
@@ -63,8 +65,15 @@ function columnFor(p: ProductionPoint, i: number, n: number): Column {
 }
 
 export function DailyHistorySection({ siteId }: { siteId: string }) {
+  // Ranges end at the site's latest completed day; until its timezone is
+  // known that's a date safe for any timezone, then it moves up.
+  const latest = latestCompleteDay(useSiteTimezone(siteId))
   const [preset, setPreset] = useState<RangePreset>("30d")
-  const [range, setRange] = useState<DateRange>(() => presetRange("30d"))
+  const [custom, setCustom] = useState<DateRange | null>(null)
+  const range: DateRange =
+    preset === "custom" && custom
+      ? { from: custom.from, to: custom.to > latest ? latest : custom.to }
+      : presetRange(preset === "custom" ? "30d" : preset, latest)
   const [showAllGaps, setShowAllGaps] = useState(false)
 
   // Fetch the range plus the equal period before it, for the comparison.
@@ -107,13 +116,11 @@ export function DailyHistorySection({ siteId }: { siteId: string }) {
         <RangeControl
           preset={preset}
           range={range}
-          onPreset={(p) => {
-            setPreset(p)
-            setRange(presetRange(p))
-          }}
+          latestDay={latest}
+          onPreset={setPreset}
           onCustom={(r) => {
             setPreset("custom")
-            setRange(r)
+            setCustom(r)
           }}
         />
       </div>

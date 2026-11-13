@@ -27,17 +27,17 @@ export const DROP_THRESHOLD_PCT = -20
 const MIN_COMPLETE_DAYS_FOR_TREND = 4
 
 /**
- * Timezone the sites run in. Production-history counts days in the site's
- * own timezone, but the engineer clients list doesn't include it (it only
- * comes back in the production response, after the dates are chosen) — so
- * dates are worked out in Fiji time rather than the viewer's browser time.
- * Without this, a viewer behind Fiji (e.g. in Nigeria) would lag a whole day
- * behind for most of their afternoon.
+ * Used while a site's timezone is still unknown. Production-history only
+ * accepts completed days in the *site's* timezone, and that timezone only
+ * comes back in its responses. UTC−12 is the last place on earth to finish a
+ * day, so "yesterday" there is complete everywhere — the first request for a
+ * site can never be rejected. Once a response tells us the real timezone
+ * (see utils/siteTimezone), dates move up to the site's own yesterday.
  */
-export const SITE_TIMEZONE = "Pacific/Fiji"
+export const SAFE_TIMEZONE = "Etc/GMT+12"
 
-/** Today's date, "YYYY-MM-DD", in the sites' timezone. */
-export function siteToday(now = new Date(), timeZone = SITE_TIMEZONE): string {
+/** Today's date, "YYYY-MM-DD", in `timeZone`. */
+export function siteToday(now = new Date(), timeZone = SAFE_TIMEZONE): string {
   // en-CA formats as YYYY-MM-DD.
   return new Intl.DateTimeFormat("en-CA", {
     timeZone,
@@ -48,12 +48,15 @@ export function siteToday(now = new Date(), timeZone = SITE_TIMEZONE): string {
 }
 
 /**
- * The newest date production-history will accept: yesterday in the site's
- * timezone. The endpoint only serves completed days, so asking for the
- * site's today is rejected.
+ * The newest date production-history will accept for a site: yesterday in
+ * its timezone. Pass `null` when the timezone isn't known yet to get a date
+ * that's safe for any site.
  */
-export function latestCompleteDay(now = new Date()): string {
-  return shiftDate(siteToday(now), -1)
+export function latestCompleteDay(
+  timeZone?: string | null,
+  now = new Date()
+): string {
+  return shiftDate(siteToday(now, timeZone ?? SAFE_TIMEZONE), -1)
 }
 
 export type ProductionWindow = {
@@ -70,9 +73,9 @@ export type ProductionWindow = {
   prev7: string[]
 }
 
-export function buildProductionWindow(now = new Date()): ProductionWindow {
-  const today = siteToday(now)
-  const day = (offset: number) => shiftDate(today, offset)
+/** The recent window ending at `end` (a site's latest completed day). */
+export function buildProductionWindow(end: string): ProductionWindow {
+  const day = (offset: number) => shiftDate(end, offset + 1)
   const range = (fromOffset: number, toOffset: number) =>
     Array.from({ length: toOffset - fromOffset + 1 }, (_, i) =>
       day(fromOffset + i)
@@ -274,12 +277,11 @@ export function fetchRangeFor(range: DateRange): DateRange {
   return { from: previousRange(range).from, to: range.to }
 }
 
+/** Preset range ending at `end` — the site's latest completed day. */
 export function presetRange(
   preset: Exclude<RangePreset, "custom">,
-  now = new Date()
+  end: string
 ): DateRange {
-  // Presets cover completed days only, ending yesterday.
-  const end = latestCompleteDay(now)
   switch (preset) {
     case "yesterday":
       return { from: end, to: end }

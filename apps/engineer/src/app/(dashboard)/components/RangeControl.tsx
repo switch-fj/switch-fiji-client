@@ -6,7 +6,6 @@ import { localDateToDateString } from "@/utils/date"
 import {
   MAX_RANGE_DAYS,
   RANGE_PRESETS,
-  latestCompleteDay,
   parseDateString,
   shiftDate,
   type DateRange,
@@ -18,11 +17,14 @@ export function RangeControl({
   range,
   onPreset,
   onCustom,
+  latestDay,
 }: {
   preset: RangePreset
   range: DateRange
   onPreset: (preset: Exclude<RangePreset, "custom">) => void
   onCustom: (range: DateRange) => void
+  /** Latest selectable date — the site's latest completed day. */
+  latestDay: string
 }) {
   // Opening "Custom" pre-fills both pickers with the range currently shown,
   // so changing either end applies straight away. The draft state only
@@ -34,7 +36,7 @@ export function RangeControl({
 
   // Production is only available for completed days, so yesterday is the
   // latest date either picker allows.
-  const latest = parseDateString(latestCompleteDay())
+  const latest = parseDateString(latestDay)
   const from =
     draftFrom ?? (customOpen ? parseDateString(range.from) : undefined)
   const to = draftTo ?? (customOpen ? parseDateString(range.to) : undefined)

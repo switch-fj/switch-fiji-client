@@ -1,12 +1,15 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { useIsFetching, useQueryClient } from "@tanstack/react-query"
 import { RefreshCw } from "lucide-react"
 import { useEngineerStats, ENGINEER_KEYS } from "@/hooks/useEngineer"
-import { PRODUCTION_KEYS, useSiteOverviews } from "@/hooks/useSiteOverviews"
+import {
+  PRODUCTION_KEYS,
+  recentRange,
+  useSiteOverviews,
+} from "@/hooks/useSiteOverviews"
 import type { EngineeringDashboardClient } from "@/types/engineer"
-import { presetRange } from "@/utils/production"
 import { OverviewTiles } from "./components/OverviewTiles"
 import { AttentionPanel } from "./components/AttentionPanel"
 import { SitesOverviewTable } from "./components/SitesOverviewTable"
@@ -19,7 +22,6 @@ export default function DashboardView() {
   const [drawerClient, setDrawerClient] =
     useState<EngineeringDashboardClient | null>(null)
 
-  const range = useMemo(() => presetRange("14d"), [])
   const { data: statsData } = useEngineerStats()
   const stats = statsData?.data
   const {
@@ -28,7 +30,8 @@ export default function DashboardView() {
     isLoadingClients,
     isClientsError,
     isLoadingProduction,
-  } = useSiteOverviews(range)
+  } = useSiteOverviews()
+  const range = recentRange(window)
 
   const isRefreshing =
     useIsFetching({ queryKey: ENGINEER_KEYS.clients }) +
