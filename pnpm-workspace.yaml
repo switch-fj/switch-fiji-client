@@ -1,3 +1,8 @@
 packages:
-  - "apps/*"
-  - "packages/*"
+  - apps/*
+  - packages/*
+
+overrides:
+  # Security: vite <7.3.7 has known advisories (dev server only). Pinned to
+  # the 7.x line so this can't jump to a new major.
+  vite: ^7.3.7
