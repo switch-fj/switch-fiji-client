@@ -20,6 +20,7 @@ import {
   type DateRange,
 } from "@/utils/production"
 import type { SiteOverview } from "@/hooks/useSiteOverviews"
+import { SEVERITY_META } from "@/utils/alerts"
 import type { EngineeringDashboardClient } from "@/types/engineer"
 import { ProductionStrip, ProductionStripLegend } from "./ProductionStrip"
 
@@ -27,12 +28,11 @@ type FilterKey = "all" | "attention" | "offline"
 type SortKey = "total" | "average"
 type Sort = { key: SortKey; dir: "asc" | "desc" } | null
 
-const SEVERITY: Record<string, number> = { offline: 0, data: 1, drop: 2 }
-
+/** Most severe active alert (critical = 0, warning = 1); Infinity if none. */
 function severityOf(o: SiteOverview) {
-  return o.attention.length === 0
+  return o.alerts.length === 0
     ? Infinity
-    : Math.min(...o.attention.map((a) => SEVERITY[a.kind]))
+    : Math.min(...o.alerts.map((a) => SEVERITY_META[a.severity].rank))
 }
 
 function sortValue(o: SiteOverview, key: SortKey): number | null {
@@ -65,14 +65,14 @@ export function SitesOverviewTable({
 
   const counts = {
     all: overviews.length,
-    attention: overviews.filter((o) => o.attention.length > 0).length,
+    attention: overviews.filter((o) => o.alerts.length > 0).length,
     offline: overviews.filter((o) => o.devicesOffline > 0).length,
   }
 
   const term = search.trim().toLowerCase()
   const rows = overviews
     .filter((o) => {
-      if (filter === "attention" && o.attention.length === 0) return false
+      if (filter === "attention" && o.alerts.length === 0) return false
       if (filter === "offline" && o.devicesOffline === 0) return false
       if (!term) return true
       return (
@@ -217,7 +217,7 @@ export function SitesOverviewTable({
                     : term
                       ? `No sites match "${search.trim()}".`
                       : filter === "attention"
-                        ? "No sites need attention right now."
+                        ? "No sites have active alerts."
                         : "No sites have offline devices."}
                 </td>
               </tr>
@@ -317,14 +317,21 @@ function SiteRow({
   const r = o.range
   const loading = o.rangeState === "loading"
   const noValue = !r || r.unsupported
-  const flagged = o.attention.length > 0
+  // Alerts are sorted most severe first, so [0] sets the row's marker.
+  const top = o.alerts[0]
 
   return (
     <tr
       className={`transition-colors hover:bg-sky-100/60 ${striped ? "bg-sky-50" : "bg-white"}`}
     >
       <td
-        className={`${cell} ${flagged ? "shadow-[inset_3px_0_0_#FA4F19]" : ""}`}
+        className={`${cell} ${
+          !top
+            ? ""
+            : top.severity === "critical"
+              ? "shadow-[inset_3px_0_0_#FA4F19]"
+              : "shadow-[inset_3px_0_0_#F59E0B]"
+        }`}
       >
         <button
           onClick={onOpen}
@@ -339,6 +346,14 @@ function SiteRow({
         >
           {o.client.client_name}
         </button>
+        {top && (
+          <span
+            className={`mt-1 flex w-fit items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-semibold ${SEVERITY_META[top.severity].badge}`}
+            title={o.alerts.map((x) => x.title).join("\n")}
+          >
+            {o.alerts.length} {o.alerts.length === 1 ? "alert" : "alerts"}
+          </span>
+        )}
       </td>
 
       <td className={cell}>

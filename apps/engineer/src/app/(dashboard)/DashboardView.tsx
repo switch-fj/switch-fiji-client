@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useIsFetching, useQueryClient } from "@tanstack/react-query"
 import { RefreshCw } from "lucide-react"
 import { useEngineerStats, ENGINEER_KEYS } from "@/hooks/useEngineer"
+import { ALERT_KEYS } from "@/hooks/useAlerts"
 import {
   PRODUCTION_KEYS,
   recentRange,
@@ -30,6 +31,9 @@ export default function DashboardView() {
     isLoadingClients,
     isClientsError,
     isLoadingProduction,
+    activeAlerts,
+    isLoadingAlerts,
+    alertsError,
   } = useSiteOverviews()
   const range = recentRange(window)
 
@@ -41,6 +45,7 @@ export default function DashboardView() {
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ["engineer"] })
     queryClient.invalidateQueries({ queryKey: PRODUCTION_KEYS.all })
+    queryClient.invalidateQueries({ queryKey: ALERT_KEYS.all })
   }
 
   // Keep the drawer showing fresh data after a refetch (e.g. after editing).
@@ -78,12 +83,13 @@ export default function DashboardView() {
         window={window}
         isLoadingClients={isLoadingClients}
         isLoadingProduction={isLoadingProduction}
+        isLoadingAlerts={isLoadingAlerts}
       />
 
       <AttentionPanel
-        overviews={overviews}
-        isLoading={isLoadingClients}
-        isCheckingProduction={isLoadingProduction}
+        alerts={activeAlerts}
+        isLoading={isLoadingAlerts}
+        error={alertsError}
       />
 
       <SitesOverviewTable

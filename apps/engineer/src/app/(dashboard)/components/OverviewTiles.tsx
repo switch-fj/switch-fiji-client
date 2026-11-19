@@ -132,11 +132,13 @@ export function OverviewTiles({
   window: win,
   isLoadingClients,
   isLoadingProduction,
+  isLoadingAlerts,
 }: {
   overviews: SiteOverview[]
   window: ProductionWindow
   isLoadingClients: boolean
   isLoadingProduction: boolean
+  isLoadingAlerts: boolean
 }) {
   const withProduction = overviews.filter(
     (o) => o.production && !o.production.unsupported
@@ -194,8 +196,11 @@ export function OverviewTiles({
   const devicesOnline = devicesTotal - devicesOffline
   const sitesWithOffline = overviews.filter((o) => o.devicesOffline > 0).length
 
-  // Attention
-  const needsAttention = overviews.filter((o) => o.attention.length > 0).length
+  // Alerts (from the alerts API, via each overview)
+  const needsAttention = overviews.filter((o) => o.alerts.length > 0).length
+  const alerts = overviews.flatMap((o) => o.alerts)
+  const criticalCount = alerts.filter((a) => a.severity === "critical").length
+  const warningCount = alerts.length - criticalCount
 
   const productionLoading = isLoadingClients || isLoadingProduction
 
@@ -304,7 +309,7 @@ export function OverviewTiles({
         isLoading={isLoadingClients}
       />
       <Tile
-        label="Sites needing attention"
+        label="Sites with active alerts"
         value={
           <>
             <CountUp value={needsAttention} />
@@ -315,25 +320,34 @@ export function OverviewTiles({
           </>
         }
         sub={
-          isLoadingProduction
-            ? "Checking production data…"
-            : needsAttention === 0
-              ? "Everything looks normal"
-              : "Offline devices, data gaps or drops"
+          isLoadingAlerts
+            ? "Checking alerts…"
+            : alerts.length === 0
+              ? "No active alerts"
+              : [
+                  criticalCount && `${criticalCount} critical`,
+                  warningCount && `${warningCount} warning`,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")
         }
-        subTone={needsAttention > 0 && !isLoadingProduction ? "bad" : "muted"}
+        subTone={criticalCount > 0 && !isLoadingAlerts ? "bad" : "muted"}
         footer={
           overviews.length > 0 && (
-            // One square per site — orange when it needs attention.
+            // One square per site, coloured by its most severe alert.
             <div className="flex flex-wrap gap-[3px]" aria-hidden>
               {[...overviews]
-                .sort((a, b) => b.attention.length - a.attention.length)
+                .sort((a, b) => b.alerts.length - a.alerts.length)
                 .map((o, i) => (
                   <span
                     key={o.site.uid}
-                    title={`${o.site.site_name ?? "Unnamed site"}${o.attention.length ? ` · ${o.attention[0].title}` : " · OK"}`}
+                    title={`${o.site.site_name ?? "Unnamed site"}${o.alerts.length ? ` · ${o.alerts[0].title}` : " · No alerts"}`}
                     className={`dash-fade h-2.5 w-2.5 rounded-[3px] ${
-                      o.attention.length ? "bg-[#FA4F19]" : "bg-[#024159]/20"
+                      !o.alerts.length
+                        ? "bg-[#024159]/20"
+                        : o.alerts[0].severity === "critical"
+                          ? "bg-[#FA4F19]"
+                          : "bg-amber-500"
                     }`}
                     style={{ animationDelay: `${i * 40}ms` }}
                   />

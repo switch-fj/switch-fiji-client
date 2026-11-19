@@ -1,42 +1,35 @@
 import api from "@/lib/axios"
 import { SITE } from "@/constants/api"
-import type { ProductionHistory } from "@/types/engineer"
+import type {
+  DeviceProductionDaily,
+  DeviceProductionGroup,
+  DeviceProductionTotals,
+  ProductionDay,
+  ProductionHistory,
+} from "@/types/engineer"
 import type { ServerResponse } from "@workspace/api"
 import { rememberSiteTimezone } from "@/utils/siteTimezone"
-import { rangeLength, shiftDate } from "@/utils/production"
+import { rangeLength, splitRange } from "@/utils/production"
 
-/** Longest range one production-history request accepts. Longer ranges are
- * split into chunks and merged. */
+/** Longest range one daily production-history request accepts. Longer
+ * ranges are split into chunks, fetched in parallel and merged. */
 export const MAX_HISTORY_DAYS = 31
 
-type HistoryParams = { from_date: string; to_date: string; refresh?: boolean }
+type DateParams = { from_date: string; to_date: string }
 
-const fetchOne = async (siteUid: string, params: HistoryParams) => {
-  const { data } = await api.get<ServerResponse<ProductionHistory>>(
-    SITE.PRODUCTION_HISTORY(siteUid),
-    { params }
-  )
-  rememberSiteTimezone(siteUid, data.data?.timezone)
-  return data
-}
-
-export const getProductionHistory = async (
-  siteUid: string,
-  params: HistoryParams
-): Promise<ServerResponse<ProductionHistory>> => {
+/** Fetches `params` as one request, or in ≤31-day chunks merged by date. */
+async function fetchDaily<T extends { items: ProductionDay[] }>(
+  params: DateParams,
+  fetchOne: (p: DateParams) => Promise<ServerResponse<T>>
+): Promise<ServerResponse<T>> {
   const range = { from: params.from_date, to: params.to_date }
-  if (rangeLength(range) <= MAX_HISTORY_DAYS) return fetchOne(siteUid, params)
+  if (rangeLength(range) <= MAX_HISTORY_DAYS) return fetchOne(params)
 
-  // Split into ≤31-day chunks, oldest first, fetched in parallel.
-  const chunks: HistoryParams[] = []
-  for (let from = range.from; from <= range.to; ) {
-    const end = shiftDate(from, MAX_HISTORY_DAYS - 1)
-    const to = end < range.to ? end : range.to
-    chunks.push({ ...params, from_date: from, to_date: to })
-    from = shiftDate(to, 1)
-  }
-  const parts = await Promise.all(chunks.map((c) => fetchOne(siteUid, c)))
-
+  const parts = await Promise.all(
+    splitRange(range, MAX_HISTORY_DAYS).map((r) =>
+      fetchOne({ ...params, from_date: r.from, to_date: r.to })
+    )
+  )
   const byDate = new Map(
     parts
       .flatMap((p) => p.data.items)
@@ -54,4 +47,47 @@ export const getProductionHistory = async (
       ),
     },
   }
+}
+
+export const getProductionHistory = (
+  siteUid: string,
+  params: DateParams & { refresh?: boolean }
+): Promise<ServerResponse<ProductionHistory>> =>
+  fetchDaily(params, async (p) => {
+    const { data } = await api.get<ServerResponse<ProductionHistory>>(
+      SITE.PRODUCTION_HISTORY(siteUid),
+      { params: { ...p, refresh: params.refresh } }
+    )
+    rememberSiteTimezone(siteUid, data.data?.timezone)
+    return data
+  })
+
+/** Daily rows for one device (chunked like the site history). */
+export const getDeviceProductionDaily = (
+  siteUid: string,
+  deviceUid: string,
+  params: DateParams
+): Promise<ServerResponse<DeviceProductionDaily>> =>
+  fetchDaily(params, async (p) => {
+    const { data } = await api.get<ServerResponse<DeviceProductionDaily>>(
+      SITE.DEVICE_PRODUCTION_HISTORY(siteUid, deviceUid),
+      { params: { ...p, group_by: "day" } }
+    )
+    rememberSiteTimezone(siteUid, data.data?.timezone)
+    return data
+  })
+
+/** Week or month totals for one device. Not chunked — a chunk boundary
+ * would split a period's total in two. */
+export const getDeviceProductionTotals = async (
+  siteUid: string,
+  deviceUid: string,
+  params: DateParams & { group_by: Exclude<DeviceProductionGroup, "day"> }
+): Promise<ServerResponse<DeviceProductionTotals>> => {
+  const { data } = await api.get<ServerResponse<DeviceProductionTotals>>(
+    SITE.DEVICE_PRODUCTION_HISTORY(siteUid, deviceUid),
+    { params }
+  )
+  rememberSiteTimezone(siteUid, data.data?.timezone)
+  return data
 }

@@ -1,10 +1,11 @@
 "use client"
 
+import { useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import {
   Activity,
-  AlertCircle,
   BatteryCharging,
+  ChartColumn,
   ChevronLeft,
   HousePlus,
   RadioTower,
@@ -20,10 +21,19 @@ import type { SiteDeviceModel } from "@/types/engineer"
 import { MaintenanceLogSection } from "./maintenance/MaintenanceLogSection"
 import { YtdSection } from "./production/YtdSection"
 import { SetupMenu } from "./SetupMenu"
+import { SiteAlertsCard } from "./alerts/SiteAlertsCard"
+import { MonitoringPanel } from "./alerts/MonitoringPanel"
+import { AlertsTable } from "@/app/(dashboard)/alerts/components/AlertsTable"
+import { RuleSettings } from "@/app/(dashboard)/alerts/components/RuleSettings"
 import { DailyHistorySection } from "./production/DailyHistorySection"
+import {
+  DeviceProductionDrawer,
+  isSolarMeter,
+} from "./production/DeviceProductionDrawer"
 
 const TABS = [
   { key: "overview", label: "Overview" },
+  { key: "alerts", label: "Alerts" },
   { key: "devices", label: "Devices" },
   { key: "maintenance", label: "Maintenance" },
 ] as const
@@ -46,12 +56,6 @@ function useTab() {
   }
   return [tab, setTab] as const
 }
-
-const MOCK_ALERTS = [
-  { type: "Device warning", description: "Backup Meter is currently offline" },
-  { type: "MPPT Health", description: "1.1 and 2.2 below functional" },
-  { type: "Grid", description: "energy low" },
-]
 
 type SiteDetailViewProps = {
   siteId: string
@@ -91,7 +95,7 @@ export function SiteDetailView({
       </div>
 
       <nav
-        className="border-border/60 flex gap-6 overflow-x-auto border-b px-6"
+        className="border-border/60 flex gap-6 overflow-x-auto overflow-y-hidden border-b px-6"
         aria-label="Site sections"
       >
         {TABS.map((t) => (
@@ -99,7 +103,7 @@ export function SiteDetailView({
             key={t.key}
             onClick={() => setTab(t.key)}
             aria-current={tab === t.key ? "page" : undefined}
-            className={`-mb-px border-b-2 py-3 text-sm whitespace-nowrap transition-colors ${
+            className={`border-b-2 py-3 text-sm whitespace-nowrap transition-colors ${
               tab === t.key
                 ? "border-[#024159] font-semibold text-[#1D1D1D]"
                 : "text-muted-foreground hover:text-foreground border-transparent font-medium"
@@ -116,11 +120,22 @@ export function SiteDetailView({
             <div className="flex flex-wrap gap-4">
               <FlowGraphCard siteId={siteId} />
               <div className="min-w-[320px] flex-1">
-                <AlertsSection />
+                <SiteAlertsCard
+                  siteId={siteId}
+                  onViewAll={() => setTab("alerts")}
+                />
               </div>
             </div>
             <YtdSection siteId={siteId} />
             <DailyHistorySection siteId={siteId} />
+          </>
+        )}
+
+        {tab === "alerts" && (
+          <>
+            <AlertsTable siteUid={siteId} />
+            <MonitoringPanel siteId={siteId} />
+            <RuleSettings siteUid={siteId} />
           </>
         )}
 
@@ -308,14 +323,18 @@ const DEVICE_COLUMNS = [
   "Total energy",
   "Last seen",
   "Status",
+  "",
 ]
 
 function DeviceRow({
   device,
   striped,
+  onProduction,
 }: {
   device: SiteDeviceModel
   striped: boolean
+  /** Only set for solar meters — the only devices with production data. */
+  onProduction?: () => void
 }) {
   const online = isDeviceOnline(device.last_seen_at)
   const telemetry = parseTelemetryReading(device.recent_telemetry_reading)
@@ -358,12 +377,26 @@ function DeviceRow({
           {online ? "Online" : "Offline"}
         </span>
       </td>
+      <td className={`${cell} text-right`}>
+        {onProduction && (
+          <button
+            onClick={onProduction}
+            className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium text-[#024159] transition-colors hover:bg-[#024159]/10"
+          >
+            <ChartColumn className="h-4 w-4" />
+            Production
+          </button>
+        )}
+      </td>
     </tr>
   )
 }
 
 function DevicesSection({ siteId }: { siteId: string }) {
   const { data, isLoading, refetch, isFetching } = useSiteDevices(siteId)
+  const [productionFor, setProductionFor] = useState<SiteDeviceModel | null>(
+    null
+  )
   const devices = data?.data ?? []
   const onlineCount = devices.filter((d) =>
     isDeviceOnline(d.last_seen_at)
@@ -427,33 +460,24 @@ function DevicesSection({ siteId }: { siteId: string }) {
             </thead>
             <tbody>
               {devices.map((d, i) => (
-                <DeviceRow key={d.uid} device={d} striped={i % 2 === 1} />
+                <DeviceRow
+                  key={d.uid}
+                  device={d}
+                  striped={i % 2 === 1}
+                  onProduction={
+                    isSolarMeter(d) ? () => setProductionFor(d) : undefined
+                  }
+                />
               ))}
             </tbody>
           </table>
         </div>
       )}
-    </div>
-  )
-}
-
-function AlertsSection() {
-  return (
-    <div className="border-border/60 rounded-xl border">
-      <div className="px-5 py-4">
-        <h3 className="text-base font-semibold text-[#1D1D1D]">Alerts</h3>
-      </div>
-      <div className="divide-border/40 divide-y">
-        {MOCK_ALERTS.map((alert, i) => (
-          <div key={i} className="flex items-start gap-3 px-5 py-3.5">
-            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
-            <p className="text-sm">
-              <span className="font-semibold text-[#1D1D1D]">{alert.type}</span>{" "}
-              <span className="text-muted-foreground">{alert.description}</span>
-            </p>
-          </div>
-        ))}
-      </div>
+      <DeviceProductionDrawer
+        siteId={siteId}
+        device={productionFor}
+        onClose={() => setProductionFor(null)}
+      />
     </div>
   )
 }

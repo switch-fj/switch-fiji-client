@@ -348,6 +348,39 @@ export type ProductionHistory = {
   items: ProductionDay[]
 }
 
+// ── Device production ───────────────────────────────────────────────────────
+
+export type DeviceProductionGroup = "day" | "week" | "month"
+
+/** group_by=day: one row per day, same shape as the site's history. */
+export type DeviceProductionDaily = ProductionHistory & { device_uid: string }
+
+/** One week or month. `from_date`/`to_date` are the part of the period
+ * inside the requested range; `period_start`/`period_end` the full period. */
+export type DeviceProductionPeriod = {
+  period_start: string
+  period_end: string
+  from_date: string
+  to_date: string
+  production_kwh: number | null
+  covered_days: number
+  requested_days: number
+  days_in_period: number
+  status: string
+}
+
+/** group_by=week|month. */
+export type DeviceProductionTotals = {
+  site_uid: string
+  device_uid: string
+  timezone: string
+  from_date: string
+  to_date: string
+  calculation_method?: string
+  group_by: "week" | "month"
+  items: DeviceProductionPeriod[]
+}
+
 // ── Year-to-date production ────────────────────────────────────────────────
 
 export type ProductionCoverage = {
