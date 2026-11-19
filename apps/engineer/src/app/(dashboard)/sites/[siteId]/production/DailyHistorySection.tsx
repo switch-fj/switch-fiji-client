@@ -27,7 +27,8 @@ import { formatDay } from "./ytdText"
 
 const COLLAPSED_GAPS = 5
 
-function columnFor(p: ProductionPoint, i: number, n: number): Column {
+/** One daily bar: complete days in navy, failed days as an orange stub. */
+export function dayColumn(p: ProductionPoint, i: number, n: number): Column {
   const every = Math.max(1, Math.ceil(n / 8))
   const issue = ISSUE_STATUSES.has(p.status as ProductionStatus)
   const statusText =
@@ -184,7 +185,7 @@ export function DailyHistorySection({ siteId }: { siteId: string }) {
 
             <ColumnChart
               columns={summary.strip.map((p, i) =>
-                columnFor(p, i, summary.strip.length)
+                dayColumn(p, i, summary.strip.length)
               )}
             />
 

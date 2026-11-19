@@ -19,9 +19,6 @@ export const PRODUCTION_STATUS_LABEL: Record<ProductionStatus, string> = {
   error: "Error",
 }
 
-/** Week-on-week change at or below this is called out as a production drop. */
-export const DROP_THRESHOLD_PCT = -20
-
 /** A week's average only counts if at least this many days are complete —
  * otherwise a couple of missing days would read as a fake drop. */
 const MIN_COMPLETE_DAYS_FOR_TREND = 4
@@ -269,6 +266,18 @@ export function rangeLength(range: DateRange): number {
 export function previousRange(range: DateRange): DateRange {
   const len = rangeLength(range)
   return { from: shiftDate(range.from, -len), to: shiftDate(range.from, -1) }
+}
+
+/** Splits `range` into consecutive pieces of at most `maxDays` days. */
+export function splitRange(range: DateRange, maxDays: number): DateRange[] {
+  const out: DateRange[] = []
+  for (let from = range.from; from <= range.to; ) {
+    const end = shiftDate(from, maxDays - 1)
+    const to = end < range.to ? end : range.to
+    out.push({ from, to })
+    from = shiftDate(to, 1)
+  }
+  return out
 }
 
 /** What to request for `range`: the range itself plus the previous period,

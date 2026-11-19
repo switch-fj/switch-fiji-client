@@ -5,9 +5,10 @@ import { keepPreviousData, useQueries } from "@tanstack/react-query"
 import { useEngineerClients } from "@/hooks/useEngineer"
 import { getProductionHistory } from "@/requests/productionHistory"
 import { useSiteTimezones } from "@/utils/siteTimezone"
+import { useActiveAlerts } from "@/hooks/useAlerts"
+import type { Alert } from "@/types/alerts"
+import { SEVERITY_META } from "@/utils/alerts"
 import {
-  DROP_THRESHOLD_PCT,
-  PRODUCTION_STATUS_LABEL,
   buildProductionWindow,
   latestCompleteDay,
   summarizeProduction,
@@ -28,14 +29,6 @@ export const PRODUCTION_KEYS = {
     ["production-history", siteUid, from, to] as const,
 }
 
-export type AttentionKind = "offline" | "data" | "drop"
-
-export type AttentionItem = {
-  kind: AttentionKind
-  title: string
-  detail?: string
-}
-
 export type SiteOverview = {
   site: EngineeringDashboardSite
   client: EngineeringDashboardClient
@@ -46,57 +39,9 @@ export type SiteOverview = {
   /** Production over the user-selected range (sites table). */
   range: RangeSummary | null
   rangeState: "loading" | "error" | "ready"
-  /** Most severe first: offline devices, then data gaps, then drops. */
-  attention: AttentionItem[]
-}
-
-function attentionFor(
-  site: EngineeringDashboardSite,
-  production: ProductionSummary | null
-): AttentionItem[] {
-  const items: AttentionItem[] = []
-
-  const offline = site.devices.filter((d) => !d.is_online)
-  if (offline.length > 0) {
-    items.push({
-      kind: "offline",
-      title:
-        offline.length === site.devices.length
-          ? "All devices offline"
-          : `${offline.length} of ${site.devices.length} devices offline`,
-      detail: offline
-        .map((d) =>
-          d.meter_role ? `${d.device_type} (${d.meter_role})` : d.device_type
-        )
-        .join(", "),
-    })
-  }
-
-  if (production && production.issueDays.length > 0) {
-    const latest = production.issueDays[production.issueDays.length - 1]
-    const n = production.issueDays.length
-    items.push({
-      kind: "data",
-      title: `No production data for ${n} of the last 7 days`,
-      detail:
-        latest.reason ??
-        PRODUCTION_STATUS_LABEL[
-          latest.status as keyof typeof PRODUCTION_STATUS_LABEL
-        ],
-    })
-  }
-
-  if (
-    production?.weekDeltaPct != null &&
-    production.weekDeltaPct <= DROP_THRESHOLD_PCT
-  ) {
-    items.push({
-      kind: "drop",
-      title: `Production down ${Math.abs(Math.round(production.weekDeltaPct))}% on the previous week`,
-    })
-  }
-
-  return items
+  /** Active (open + acknowledged) alerts from the alerts API, critical
+   * first, then most recently detected. */
+  alerts: Alert[]
 }
 
 /**
@@ -113,6 +58,19 @@ function attentionFor(
  */
 export function useSiteOverviews() {
   const zones = useSiteTimezones()
+  const alertsQuery = useActiveAlerts()
+
+  // Active alerts grouped by site, most severe and most recent first.
+  const alertsBySite = useMemo(() => {
+    const map = new Map<string, Alert[]>()
+    const sorted = [...(alertsQuery.data ?? [])].sort(compareAlerts)
+    for (const a of sorted) {
+      const list = map.get(a.site_uid)
+      if (list) list.push(a)
+      else map.set(a.site_uid, [a])
+    }
+    return map
+  }, [alertsQuery.data])
   const clientsQuery = useEngineerClients()
   const clients = clientsQuery.data
 
@@ -152,7 +110,7 @@ export function useSiteOverviews() {
         devicesOffline: site.devices.filter((d) => !d.is_online).length,
         production,
         productionState: state,
-        attention: attentionFor(site, production),
+        alerts: alertsBySite.get(site.uid) ?? [],
         range,
         rangeState: state,
       }
@@ -177,6 +135,10 @@ export function useSiteOverviews() {
     isLoadingClients: clientsQuery.isLoading,
     isClientsError: clientsQuery.isError,
     isLoadingProduction: histories.some((h) => h.isLoading),
+    /** Every active alert, including any for sites not in the client list. */
+    activeAlerts: alertsQuery.data,
+    isLoadingAlerts: alertsQuery.isLoading,
+    alertsError: alertsQuery.error,
   }
 }
 
@@ -184,4 +146,12 @@ export function useSiteOverviews() {
  * the comparison period). */
 export function recentRange(w: ProductionWindow): DateRange {
   return { from: w.stripDates[0], to: w.to }
+}
+
+/** Critical before warning, then most recently detected first. */
+export function compareAlerts(a: Alert, b: Alert) {
+  return (
+    SEVERITY_META[a.severity].rank - SEVERITY_META[b.severity].rank ||
+    b.last_detected_at.localeCompare(a.last_detected_at)
+  )
 }

@@ -28,6 +28,8 @@ export const SITE = {
     `/api/v1/sites/${siteUid}/battery-config`,
   PRODUCTION_HISTORY: (siteUid: string) =>
     `/api/v1/sites/${siteUid}/production-history`,
+  DEVICE_PRODUCTION_HISTORY: (siteUid: string, deviceUid: string) =>
+    `/api/v1/sites/${siteUid}/devices/${deviceUid}/production-history`,
   PRODUCTION_YTD: (siteUid: string) =>
     `/api/v1/sites/${siteUid}/production-ytd`,
   MAINTENANCE_LOGS: (siteUid: string) =>
@@ -43,4 +45,22 @@ export const DEVICE = {
 // Note: singular "site", unlike the SITE group above — a distinct route.
 export const FLOW_GRAPH = {
   STREAM: (siteUid: string) => `/api/v1/site/${siteUid}/flow-graph/stream`,
+} as const
+
+export const ALERTS = {
+  LIST: "/api/v1/alerts",
+  SUMMARY: "/api/v1/alerts/summary",
+  DETAIL: (alertUid: string) => `/api/v1/alerts/${alertUid}`,
+  EVENTS: (alertUid: string) => `/api/v1/alerts/${alertUid}/events`,
+  ACKNOWLEDGE: (alertUid: string) => `/api/v1/alerts/${alertUid}/acknowledge`,
+  MONITORING_STATUS: (siteUid: string) =>
+    `/api/v1/sites/${siteUid}/monitoring-status`,
+  MONITORING_EXECUTIONS: (siteUid: string) =>
+    `/api/v1/sites/${siteUid}/monitoring-executions`,
+  GLOBAL_CONFIG: "/api/v1/alert-configuration",
+  GLOBAL_RULE: (ruleKey: string) => `/api/v1/alert-configuration/${ruleKey}`,
+  SITE_CONFIG: (siteUid: string) =>
+    `/api/v1/sites/${siteUid}/alert-configuration`,
+  SITE_RULE: (siteUid: string, ruleKey: string) =>
+    `/api/v1/sites/${siteUid}/alert-configuration/${ruleKey}`,
 } as const
